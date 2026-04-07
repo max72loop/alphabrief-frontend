@@ -34,7 +34,7 @@ export default function DigestToggle({ initialValue }: { initialValue: boolean }
       <div>
         <p className="text-sm font-medium text-white">Digest hebdomadaire</p>
         <p className="text-xs text-zinc-500 mt-0.5">
-          Reçois chaque lundi le top 10 du screener + ta watchlist par email.
+          Reçois chaque lundi le top 10 du screener + ton suivi par email.
         </p>
       </div>
       <div className="flex items-center gap-3 shrink-0 ml-6">

@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   if (!wl) {
     const { data } = await supabase
       .from('watchlists')
-      .insert({ user_id: user.id, name: 'Ma watchlist' })
+      .insert({ user_id: user.id, name: 'Mon suivi' })
       .select('id')
       .single()
     wl = data

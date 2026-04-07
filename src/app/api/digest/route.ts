@@ -104,7 +104,7 @@ function buildDigestHtml(
 ) {
   const watchlistSection = watchlist.length > 0 ? `
     <h2 style="color:#fff;font-size:14px;font-weight:700;margin:28px 0 10px;letter-spacing:0.05em;text-transform:uppercase">
-      Ta watchlist
+      Ton suivi
     </h2>
     <table style="width:100%;border-collapse:collapse;background:rgba(255,255,255,0.02);border-radius:8px;overflow:hidden">
       ${tickerRows(watchlist)}

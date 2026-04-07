@@ -72,7 +72,7 @@ export default function ProfilPanel({
           {/* Stats */}
           <div className="grid grid-cols-3 gap-2">
             {[
-              { val: watchlistCount, label: 'Watchlist' },
+              { val: watchlistCount, label: 'Mon suivi' },
               { val: 5, label: 'Analyses/jour' },
               { val: '0€', label: 'Plan actuel' },
             ].map(s => (
@@ -97,7 +97,7 @@ export default function ProfilPanel({
             <div className="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-600 mb-2">Compte</div>
             <div className="flex flex-col gap-1">
               {[
-                { href: '/watchlist', label: 'Ma Watchlist' },
+                { href: '/dashboard', label: 'Mon suivi' },
                 { href: '/portfolio', label: 'Mon Portfolio' },
                 { href: '/alerts', label: 'Mes Alertes' },
               ].map(l => (

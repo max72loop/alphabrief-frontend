@@ -33,7 +33,7 @@ export default function WatchlistButton({
     <button
       onClick={toggle}
       disabled={loading}
-      title={inWatchlist ? 'Retirer de la watchlist' : 'Ajouter à la watchlist'}
+      title={inWatchlist ? 'Retirer du suivi' : 'Ajouter au suivi'}
       className={`leading-none transition-colors disabled:opacity-40 ${
         size === 'lg' ? 'text-2xl' : 'text-base'
       } ${

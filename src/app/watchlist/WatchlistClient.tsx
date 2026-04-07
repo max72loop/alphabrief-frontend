@@ -102,7 +102,7 @@ export default function WatchlistClient({
 
       {tickers.length === 0 ? (
         <div className="rounded-xl border border-white/[0.06] p-10 text-center">
-          <p className="text-zinc-400 font-medium mb-2">Votre watchlist est vide</p>
+          <p className="text-zinc-400 font-medium mb-2">Votre suivi est vide</p>
           <p className="text-zinc-600 text-sm mb-4">Ajoutez un ticker pour générer votre premier score.</p>
           <div className="flex gap-2 justify-center">
             {['AAPL', 'MC.PA', 'MSFT'].map(t => (
