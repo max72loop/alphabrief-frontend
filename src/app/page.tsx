@@ -3,11 +3,23 @@ import Link from "next/link";
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-[#0f0f1a] text-white">
-      {/* Nav */}
+
+      {/* ── Nav ───────────────────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 h-14 bg-[#0a0a14]/90 border-b border-white/[0.06] backdrop-blur-xl">
         <span className="text-base font-bold tracking-tight text-white">
           Alpha<span className="text-indigo-400">Brief</span>
         </span>
+
+        {/* Liens de navigation centraux */}
+        <div className="hidden sm:flex items-center gap-6 text-sm text-zinc-400">
+          <a href="#comment-ca-marche" className="hover:text-white transition-colors">
+            Comment ça marche
+          </a>
+          <Link href="/pricing" className="hover:text-white transition-colors">
+            Tarifs
+          </Link>
+        </div>
+
         <div className="flex items-center gap-2">
           <Link
             href="/login"
@@ -24,10 +36,10 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section className="flex flex-col items-center justify-center text-center px-6 pt-36 pb-24 flex-1">
         <span className="inline-flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/25 px-3 py-1 rounded-full mb-6">
-          Outil d&apos;analyse quantitative
+          ✦ 1 500+ actions scorées en temps réel
         </span>
         <h1 className="text-4xl sm:text-6xl font-extrabold leading-tight tracking-tight mb-5 max-w-3xl">
           Investis dans les bonnes boîtes.{" "}
@@ -59,25 +71,90 @@ export default function Home() {
         </p>
       </section>
 
-      {/* Score demo */}
-      <section className="flex justify-center px-6 pb-20">
-        <div className="grid grid-cols-3 gap-4 max-w-lg w-full">
+      {/* ── Product preview ───────────────────────────────────────────── */}
+      <section className="flex flex-col items-center px-6 pb-24 gap-6">
+        <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+          Aperçu en direct · Mis à jour chaque nuit
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl w-full">
           {[
-            { ticker: "AAPL", name: "Apple", score: 74, label: "Bon", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
-            { ticker: "META", name: "Meta", score: 81, label: "Excellent", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
-            { ticker: "NKE", name: "Nike", score: 38, label: "Attention", color: "text-red-400", bg: "bg-red-500/10 border-red-500/20" },
+            {
+              ticker: "AAPL",
+              name: "Apple Inc.",
+              score: 74,
+              label: "Bon",
+              change: "+1.42%",
+              changePos: true,
+              scoreColor: "text-emerald-400",
+              barColor: "bg-emerald-500",
+              badgeBg: "bg-emerald-500/10 border-emerald-500/20",
+              badgeText: "text-emerald-400",
+            },
+            {
+              ticker: "META",
+              name: "Meta Platforms",
+              score: 81,
+              label: "Excellent",
+              change: "+2.07%",
+              changePos: true,
+              scoreColor: "text-emerald-400",
+              barColor: "bg-emerald-500",
+              badgeBg: "bg-emerald-500/10 border-emerald-500/20",
+              badgeText: "text-emerald-400",
+            },
+            {
+              ticker: "NKE",
+              name: "Nike Inc.",
+              score: 38,
+              label: "Attention",
+              change: "-0.83%",
+              changePos: false,
+              scoreColor: "text-red-400",
+              barColor: "bg-red-500",
+              badgeBg: "bg-red-500/10 border-red-500/20",
+              badgeText: "text-red-400",
+            },
           ].map((s) => (
             <div
               key={s.ticker}
-              className="bg-white/[0.03] border border-white/[0.07] rounded-xl p-4 flex flex-col items-center gap-1"
+              className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 flex flex-col gap-3 hover:border-white/[0.14] transition-colors"
             >
-              <span className="text-[0.65rem] font-bold uppercase tracking-wider text-zinc-500">
-                {s.ticker}
-              </span>
-              <span className="text-xs text-zinc-400">{s.name}</span>
-              <span className={`text-3xl font-extrabold mt-1 ${s.color}`}>{s.score}</span>
+              {/* Header */}
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                    {s.ticker}
+                  </span>
+                  <p className="text-[0.7rem] text-zinc-500 mt-0.5">{s.name}</p>
+                </div>
+                <span
+                  className={`text-[0.7rem] font-semibold ${
+                    s.changePos ? "text-emerald-400" : "text-red-400"
+                  }`}
+                >
+                  {s.change}
+                </span>
+              </div>
+
+              {/* Score */}
+              <div className="flex items-end gap-2">
+                <span className={`text-4xl font-extrabold leading-none ${s.scoreColor}`}>
+                  {s.score}
+                </span>
+                <span className="text-zinc-600 text-sm mb-0.5">/ 100</span>
+              </div>
+
+              {/* Progress bar */}
+              <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${s.barColor}`}
+                  style={{ width: `${s.score}%` }}
+                />
+              </div>
+
+              {/* Badge */}
               <span
-                className={`text-[0.65rem] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${s.bg} ${s.color}`}
+                className={`self-start text-[0.65rem] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${s.badgeBg} ${s.badgeText}`}
               >
                 {s.label}
               </span>
@@ -86,7 +163,55 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How it works */}
+      {/* ── Pourquoi AlphaBrief ───────────────────────────────────────── */}
+      <section className="px-6 pb-24 max-w-4xl mx-auto w-full">
+        <h2 className="text-2xl font-bold text-center mb-2">Pourquoi AlphaBrief ?</h2>
+        <p className="text-center text-zinc-500 text-sm mb-10">
+          Fini les tableurs interminables. Un outil pensé pour l&apos;investisseur individuel.
+        </p>
+        <div className="grid sm:grid-cols-3 gap-5">
+          {[
+            {
+              icon: "⏱",
+              title: "Gagnez du temps",
+              before: "Avant : 2h de recherche par action",
+              after: "Après : un score en 3 secondes",
+            },
+            {
+              icon: "🎯",
+              title: "Décidez avec confiance",
+              before: "Avant : 20 métriques contradictoires",
+              after: "Après : une note claire de 0 à 100",
+            },
+            {
+              icon: "📡",
+              title: "Restez à jour",
+              before: "Avant : données périmées ou payantes",
+              after: "Après : mise à jour chaque nuit",
+            },
+          ].map((b) => (
+            <div
+              key={b.title}
+              className="bg-white/[0.03] border border-white/[0.07] rounded-xl p-5 flex flex-col gap-3"
+            >
+              <span className="text-2xl">{b.icon}</span>
+              <span className="font-bold text-white text-sm">{b.title}</span>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[0.75rem] text-zinc-500 flex items-start gap-2">
+                  <span className="mt-0.5 text-red-500 font-bold">✕</span>
+                  {b.before}
+                </p>
+                <p className="text-[0.75rem] text-emerald-400 flex items-start gap-2">
+                  <span className="mt-0.5 font-bold">✓</span>
+                  {b.after}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── How it works ──────────────────────────────────────────────── */}
       <section id="comment-ca-marche" className="px-6 pb-24 max-w-4xl mx-auto w-full">
         <h2 className="text-2xl font-bold text-center mb-10">Un score. Trois piliers.</h2>
         <div className="grid sm:grid-cols-3 gap-5">
@@ -125,7 +250,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Score legend */}
+      {/* ── Score legend ──────────────────────────────────────────────── */}
       <section className="px-6 pb-24 max-w-2xl mx-auto w-full">
         <h2 className="text-xl font-bold text-center mb-6">Lire un score AlphaBrief</h2>
         <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl overflow-hidden">
@@ -149,19 +274,47 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="px-6 pb-28 text-center">
-        <h2 className="text-2xl font-bold mb-4">Prêt à scorer vos premières actions ?</h2>
-        <p className="text-zinc-400 mb-6 text-sm">Gratuit jusqu&apos;à 5 analyses par jour.</p>
-        <Link
-          href="/login"
-          className="inline-flex items-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold text-base transition-colors"
-        >
-          Créer un compte gratuit →
-        </Link>
+      {/* ── CTA final ─────────────────────────────────────────────────── */}
+      <section className="px-6 pb-28">
+        <div className="max-w-2xl mx-auto rounded-2xl bg-gradient-to-br from-indigo-600/20 via-violet-600/10 to-transparent border border-indigo-500/20 px-8 py-12 text-center">
+          <h2 className="text-2xl font-bold mb-2">Prêt à scorer vos premières actions ?</h2>
+          <p className="text-zinc-400 mb-8 text-sm">
+            Commencez gratuitement — aucune carte bancaire requise.
+          </p>
+
+          {/* Checklist */}
+          <ul className="inline-flex flex-col items-start gap-2 mb-8 text-sm">
+            {[
+              "5 analyses complètes par jour offertes",
+              "Score sur 3 piliers : fondamentaux, technique, momentum",
+              "Watchlist personnalisée et alertes",
+              "Données mises à jour chaque nuit",
+            ].map((feat) => (
+              <li key={feat} className="flex items-center gap-2 text-zinc-300">
+                <span className="text-emerald-400 font-bold">✓</span>
+                {feat}
+              </li>
+            ))}
+          </ul>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-semibold text-base transition-colors"
+            >
+              Créer un compte gratuit →
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3 border border-white/10 hover:border-white/20 rounded-xl font-semibold text-base text-zinc-300 hover:text-white transition-colors"
+            >
+              Voir les tarifs
+            </Link>
+          </div>
+        </div>
       </section>
 
-      {/* Footer */}
+      {/* ── Footer ────────────────────────────────────────────────────── */}
       <footer className="border-t border-white/[0.06] px-6 py-6 text-center text-xs text-zinc-600">
         <p>
           © {new Date().getFullYear()} AlphaBrief — Outil d&apos;aide à la décision, pas un conseil en investissement au sens MIF II.
@@ -169,9 +322,12 @@ export default function Home() {
         <p className="mt-1">
           <Link href="/login" className="hover:text-zinc-400 transition-colors">Connexion</Link>
           {" · "}
+          <Link href="/pricing" className="hover:text-zinc-400 transition-colors">Tarifs</Link>
+          {" · "}
           <a href="mailto:contact@maxloop.ovh" className="hover:text-zinc-400 transition-colors">Contact</a>
         </p>
       </footer>
+
     </div>
   );
 }

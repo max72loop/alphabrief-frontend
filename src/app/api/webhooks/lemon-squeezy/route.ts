@@ -1,24 +1,36 @@
-import { createHmac } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+
+// Force Node.js runtime — l'edge runtime peut tronquer req.text() sur gros payloads
+export const runtime = 'nodejs'
 
 const WEBHOOK_SECRET = process.env.LEMON_WEBHOOK_SECRET ?? ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
 
-// Client admin (service role) pour écrire dans profiles sans RLS
 function adminClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
     auth: { persistSession: false },
   })
 }
 
+// Comparaison en temps constant pour éviter les timing attacks
 function verifySignature(body: string, signature: string): boolean {
-  if (!WEBHOOK_SECRET) return false
+  if (!WEBHOOK_SECRET) {
+    console.error('[webhook] LEMON_WEBHOOK_SECRET non configuré')
+    return false
+  }
+  if (!signature) return false
   const hmac = createHmac('sha256', WEBHOOK_SECRET)
   hmac.update(body)
   const digest = hmac.digest('hex')
-  return digest === signature
+  try {
+    return timingSafeEqual(Buffer.from(digest, 'hex'), Buffer.from(signature, 'hex'))
+  } catch {
+    // Les deux buffers n'ont pas la même taille → signature invalide
+    return false
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -26,6 +38,7 @@ export async function POST(req: NextRequest) {
   const signature = req.headers.get('x-signature') ?? ''
 
   if (!verifySignature(rawBody, signature)) {
+    console.warn('[webhook] Signature invalide — rejeté')
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
@@ -33,20 +46,22 @@ export async function POST(req: NextRequest) {
   try {
     payload = JSON.parse(rawBody)
   } catch {
+    console.error('[webhook] JSON invalide')
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const eventName = payload.meta && typeof payload.meta === 'object'
-    ? (payload.meta as Record<string, unknown>).event_name as string
-    : ''
-
+  const meta = payload.meta as Record<string, unknown> | undefined
+  const eventName = meta?.event_name as string | undefined
   const data = payload.data as Record<string, unknown> | undefined
   const attributes = data?.attributes as Record<string, unknown> | undefined
-  const customData = (payload.meta as Record<string, unknown>)?.custom_data as Record<string, unknown> | undefined
+  const customData = meta?.custom_data as Record<string, unknown> | undefined
   const userId = customData?.user_id as string | undefined
 
+  console.log(`[webhook] event=${eventName} userId=${userId ?? 'none'} dataId=${data?.id ?? 'none'}`)
+
   if (!userId) {
-    // Lemon Squeezy a envoyé un event sans user_id dans custom_data
+    // Event sans user_id dans custom_data — probablement un test manuel depuis Lemon
+    console.warn('[webhook] Pas de user_id dans custom_data — ignoré')
     return NextResponse.json({ received: true, skipped: 'no user_id' })
   }
 
@@ -58,40 +73,46 @@ export async function POST(req: NextRequest) {
     case 'subscription_resumed':
     case 'subscription_unpaused': {
       const orderId = data?.id as string | undefined
-      await supabase.from('profiles').upsert({
+      const { error } = await supabase.from('profiles').upsert({
         id: userId,
         is_premium: true,
         lemon_order_id: orderId ?? null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' })
+      if (error) console.error(`[webhook] Erreur upsert premium userId=${userId}`, error)
+      else console.log(`[webhook] Premium activé userId=${userId}`)
       break
     }
 
     case 'subscription_cancelled':
-    case 'subscription_expired':
     case 'subscription_paused': {
-      // On garde is_premium true jusqu'à la fin de la période — Lemon gère ça
-      // On passe à false seulement sur expired
-      if (eventName === 'subscription_expired') {
-        const status = attributes?.status as string | undefined
-        if (status === 'expired') {
-          await supabase.from('profiles').upsert({
-            id: userId,
-            is_premium: false,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'id' })
-        }
-      }
+      // Lemon continue à facturer jusqu'à la fin de période — on ne révoque pas encore
+      // L'event subscription_expired arrivera quand la période sera vraiment terminée
+      console.log(`[webhook] ${eventName} userId=${userId} — en attente de subscription_expired`)
+      break
+    }
+
+    case 'subscription_expired': {
+      // La période est terminée, on révoque l'accès
+      const { error } = await supabase.from('profiles').upsert({
+        id: userId,
+        is_premium: false,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' })
+      if (error) console.error(`[webhook] Erreur révocation premium userId=${userId}`, error)
+      else console.log(`[webhook] Premium révoqué userId=${userId}`)
       break
     }
 
     case 'subscription_payment_failed': {
-      // Ne pas révoquer immédiatement — Lemon réessaiera
+      // Lemon réessaiera automatiquement — on log seulement
+      const status = attributes?.status as string | undefined
+      console.warn(`[webhook] Paiement échoué userId=${userId} status=${status ?? 'unknown'}`)
       break
     }
 
     default:
-      // Event non géré, on répond 200 quand même pour éviter les retries
+      console.log(`[webhook] Event non géré: ${eventName}`)
       break
   }
 

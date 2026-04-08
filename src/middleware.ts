@@ -28,19 +28,17 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname
 
-  // Redirige vers /login si non authentifié sur routes protégées
-  const protectedPaths = ['/dashboard', '/ticker']
-  const isProtected = protectedPaths.some(p => path.startsWith(p))
-  if (!user && isProtected) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
-
   // Redirige vers /dashboard si déjà connecté sur /login
   if (user && path === '/login') {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
+
+  // Protège /dashboard — redirige vers /login si non authentifié
+  if (!user && path.startsWith('/dashboard')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 

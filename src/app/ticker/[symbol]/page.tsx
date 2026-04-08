@@ -1,4 +1,4 @@
-import { redirect, notFound } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import AppNav from '@/components/AppNav'
@@ -690,6 +690,103 @@ function PriceLevelsSection({ fin, mkt, currency }: { fin: Financials | null; mk
   )
 }
 
+// ── Guest Teaser ──────────────────────────────────────────────────────────────
+
+function TeaserBlock({ ticker, row }: { ticker: string; row: TickerScore }) {
+  const currency = row.currency || ''
+  return (
+    <div className="min-h-screen bg-[#0f0f1a] text-white">
+      <AppNav activePath="" />
+      <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+        <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-white transition-colors">
+          <span>←</span> Screener
+        </Link>
+
+        {/* Header — fully visible */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-1 flex-wrap">
+              <h1 className="text-2xl font-bold truncate">{row.company_name || ticker}</h1>
+              <span className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-white/[0.06] text-zinc-300 shrink-0">{ticker}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-zinc-500 flex-wrap">
+              {row.sector && <span>{row.sector}</span>}
+              {row.sector && row.exchange && <span>·</span>}
+              {row.exchange && <span>{row.exchange}</span>}
+              {row.market_cap && <><span>·</span><span>{fmtCap(row.market_cap)} {currency}</span></>}
+            </div>
+            {row.one_liner && (
+              <p className="mt-2 text-sm text-zinc-400 max-w-lg italic">&ldquo;{row.one_liner}&rdquo;</p>
+            )}
+            {row.moat_tags && row.moat_tags.length > 0 && (
+              <div className="flex gap-1.5 mt-2 flex-wrap">
+                {row.moat_tags.map(tag => (
+                  <span key={tag} className="px-2 py-0.5 rounded-full text-xs bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">{tag}</span>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Score badge — visible */}
+          <div className={`flex flex-col items-center justify-center w-24 h-24 rounded-2xl border ${scoreBgBorder(row.score_total)} shrink-0`}>
+            <span className={`text-4xl font-black tabular-nums ${scoreTwColor(row.score_total)}`}>{row.score_total}</span>
+            <span className="text-[10px] uppercase tracking-wider text-zinc-500 mt-0.5">{row.score_label || 'Score'}</span>
+          </div>
+        </div>
+
+        {/* Locked section with signup CTA */}
+        <div className="relative rounded-2xl border border-indigo-500/25 bg-indigo-500/5 overflow-hidden">
+          {/* Blurred fake content */}
+          <div className="absolute inset-0 pointer-events-none select-none p-6 space-y-4 blur-sm opacity-20">
+            <div className="grid grid-cols-3 gap-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-20 rounded-xl bg-white/10" />
+              ))}
+            </div>
+            <div className="h-2 bg-white/20 rounded w-3/4" />
+            <div className="h-2 bg-white/20 rounded w-1/2" />
+            <div className="grid grid-cols-2 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-12 rounded-lg bg-white/10" />
+              ))}
+            </div>
+            <div className="h-2 bg-white/20 rounded w-2/3" />
+          </div>
+
+          {/* CTA overlay */}
+          <div className="relative z-10 py-14 px-6 flex flex-col items-center text-center gap-5">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center">
+              <svg className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-white">Débloquez l&apos;analyse complète</p>
+              <p className="text-sm text-zinc-400 mt-1.5 max-w-sm leading-relaxed">
+                Breakdown des 3 piliers, signaux d&apos;achat/vente, métriques fondamentales, indicateurs techniques.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+              <Link
+                href="/login?mode=signup"
+                className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition-colors text-sm font-bold text-white text-center shadow-lg shadow-indigo-500/20"
+              >
+                Créer un compte gratuit
+              </Link>
+              <Link
+                href="/login"
+                className="flex-1 py-3 rounded-xl border border-white/[0.1] text-sm text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors text-center"
+              >
+                Se connecter
+              </Link>
+            </div>
+            <p className="text-xs text-zinc-600">Gratuit · 5 analyses/jour · Sans carte bancaire</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
+
 // ── Freemium ──────────────────────────────────────────────────────────────────
 
 const DAILY_LIMIT = 5
@@ -769,12 +866,22 @@ export default async function TickerPage({ params }: { params: Promise<{ symbol:
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
   const today = new Date().toISOString().slice(0, 10)
 
+  // Fetch ticker data (needed for both auth and guest)
+  const { data: tickerData, error: tickerError } = await supabase
+    .from('ticker_scores').select('*').eq('ticker', ticker).single()
+
+  if (tickerError || !tickerData) notFound()
+
+  // Non-authenticated: show teaser
+  if (!user) {
+    return <TeaserBlock ticker={ticker} row={tickerData as TickerScore} />
+  }
+
   const [{ data, error }, inWatchlistResult, historyResult, profileResult] = await Promise.all([
-    supabase.from('ticker_scores').select('*').eq('ticker', ticker).single(),
+    Promise.resolve({ data: tickerData, error: null }),
     (async () => {
       try {
         const { data: wl } = await supabase.from('watchlists').select('id').eq('user_id', user.id).maybeSingle()

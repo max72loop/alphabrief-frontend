@@ -64,16 +64,45 @@ const tierBg = {
   low:  'bg-rose-500/10',
 }
 
-function ScorePill({ score }: { score: number }) {
+function ScorePill({ score, sub }: { score: number; sub?: { f: number; t: number; m: number } }) {
   const tier = signalTier(score)
   return (
-    <div className="inline-flex flex-col items-center gap-0.5">
+    <div className="group relative inline-flex flex-col items-center gap-0.5">
       <span className={`inline-flex items-center justify-center w-10 h-7 rounded text-xs font-bold ${tierColor[tier]} ${tierBg[tier]}`}>
         {score}
       </span>
       <span className={`text-[0.6rem] font-bold uppercase tracking-wider ${tierColor[tier]}`}>
         {signalLabel(score)}
       </span>
+      {sub && (
+        <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+          <div className="bg-[#0d0d1a] border border-white/15 rounded-lg p-3 shadow-2xl w-48 text-left">
+            <div className="text-[0.6rem] uppercase tracking-widest text-zinc-600 mb-2.5">Détail du score</div>
+            {([
+              { label: 'Fondamentaux', val: sub.f, weight: '50%' },
+              { label: 'Techniques',   val: sub.t, weight: '25%' },
+              { label: 'Momentum',     val: sub.m, weight: '25%' },
+            ] as const).map(({ label, val, weight }) => {
+              const t = signalTier(val)
+              return (
+                <div key={label} className="mb-2 last:mb-0">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-zinc-400">{label} <span className="text-zinc-700">{weight}</span></span>
+                    <span className={`text-xs font-bold tabular-nums ${tierColor[t]}`}>{val}</span>
+                  </div>
+                  <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${val >= 65 ? 'bg-emerald-500' : val >= 40 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                      style={{ width: `${val}%` }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 border-b border-r border-white/15 bg-[#0d0d1a] rotate-45 -mt-1" />
+        </div>
+      )}
     </div>
   )
 }
@@ -159,9 +188,11 @@ const OPTIONAL_COLS = [
 export default function ScreenerTable({
   rows,
   watchlistTickers,
+  isAuthenticated = true,
 }: {
   rows: TickerScore[]
   watchlistTickers: string[]
+  isAuthenticated?: boolean
 }) {
   const router = useRouter()
 
@@ -342,7 +373,64 @@ export default function ScreenerTable({
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <div className="text-center py-14 text-zinc-500 text-sm">Aucun résultat</div>
+        <div className="rounded-xl border border-white/[0.06] px-6 py-12 text-center">
+          <p className="text-zinc-300 font-semibold mb-1">Aucun résultat</p>
+          <p className="text-zinc-600 text-sm mb-5">Tes filtres actifs ne correspondent à aucun titre.</p>
+          {/* Active filters as removable chips */}
+          <div className="flex flex-wrap gap-2 justify-center mb-6">
+            {search && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-white/[0.05] border border-white/[0.08] text-zinc-400">
+                Recherche : <span className="text-white font-medium">{search}</span>
+                <button onClick={() => setSearch('')} className="text-zinc-600 hover:text-rose-400 transition-colors">×</button>
+              </span>
+            )}
+            {sector !== 'all' && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-white/[0.05] border border-white/[0.08] text-zinc-400">
+                Secteur : <span className="text-white font-medium">{sector}</span>
+                <button onClick={() => setSector('all')} className="text-zinc-600 hover:text-rose-400 transition-colors">×</button>
+              </span>
+            )}
+            {minScore && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-white/[0.05] border border-white/[0.08] text-zinc-400">
+                Score ≥ <span className="text-white font-medium">{minScore}</span>
+                <button onClick={() => setMinScore('')} className="text-zinc-600 hover:text-rose-400 transition-colors">×</button>
+              </span>
+            )}
+            {maxRsi && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-white/[0.05] border border-white/[0.08] text-zinc-400">
+                RSI ≤ <span className="text-white font-medium">{maxRsi}</span>
+                <button onClick={() => setMaxRsi('')} className="text-zinc-600 hover:text-rose-400 transition-colors">×</button>
+              </span>
+            )}
+            {minMom && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-white/[0.05] border border-white/[0.08] text-zinc-400">
+                Mom 3m ≥ <span className="text-white font-medium">{minMom}%</span>
+                <button onClick={() => setMinMom('')} className="text-zinc-600 hover:text-rose-400 transition-colors">×</button>
+              </span>
+            )}
+            {signal !== 'all' && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-white/[0.05] border border-white/[0.08] text-zinc-400">
+                Signal : <span className="text-white font-medium">{signal === 'high' ? 'Fort' : signal === 'mid' ? 'Moyen' : 'Faible'}</span>
+                <button onClick={() => setSignal('all')} className="text-zinc-600 hover:text-rose-400 transition-colors">×</button>
+              </span>
+            )}
+          </div>
+          {/* Quick actions */}
+          <div className="flex flex-wrap gap-2 justify-center">
+            <button
+              onClick={() => { setSignal('high'); setMinScore(''); setMaxRsi(''); setMinMom(''); }}
+              className="px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition-colors"
+            >
+              Voir les scores forts
+            </button>
+            <button
+              onClick={() => { setSearch(''); setSector('all'); setMinScore(''); setMaxRsi(''); setMinMom(''); setSignal('all') }}
+              className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-zinc-400 text-xs font-semibold hover:text-white hover:border-white/20 transition-colors"
+            >
+              Tout réinitialiser
+            </button>
+          </div>
+        </div>
       ) : (
         <div className="rounded-xl border border-white/[0.06] overflow-x-auto">
           <table className="w-full text-sm">
@@ -360,7 +448,7 @@ export default function ScreenerTable({
                 {col('fcf_margin')  && <SortTh colKey="fcf_margin"    label="FCF Marge"    className="text-right" />}
                 {col('market_cap')  && <SortTh colKey="market_cap"    label="Mkt Cap"      className="text-right" />}
                 {col('score_date')  && <th className="px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider text-center">Mis à jour</th>}
-                <th className="w-10 px-3 py-3" />
+                {isAuthenticated && <th className="w-10 px-3 py-3" />}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
@@ -377,11 +465,31 @@ export default function ScreenerTable({
                     <td className="pl-5 pr-4 py-3.5">
                       <div className="font-bold text-white">{row.company_name || row.ticker}</div>
                       {row.company_name && (
-                        <div className="text-xs text-zinc-600">{row.ticker}</div>
+                        <div className="text-xs text-zinc-600 mb-1.5">{row.ticker}</div>
                       )}
+                      <div className="flex items-center gap-1.5">
+                        {([
+                          { v: row.score_fundamentals, label: 'F' },
+                          { v: row.score_technicals,   label: 'T' },
+                          { v: row.score_momentum,     label: 'M' },
+                        ] as const).map(({ v, label }) => (
+                          <div key={label} title={`${label === 'F' ? 'Fondamentaux' : label === 'T' ? 'Techniques' : 'Momentum'}: ${v}`} className="flex items-center gap-0.5">
+                            <span className="text-[0.5rem] text-zinc-700 font-medium w-2.5">{label}</span>
+                            <div className="w-8 h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${v >= 65 ? 'bg-emerald-500/60' : v >= 40 ? 'bg-amber-500/60' : 'bg-rose-500/60'}`}
+                                style={{ width: `${v}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </td>
                     <td className="px-4 py-3.5 text-center">
-                      <ScorePill score={row.score_total} />
+                      <ScorePill
+                        score={row.score_total}
+                        sub={{ f: row.score_fundamentals, t: row.score_technicals, m: row.score_momentum }}
+                      />
                     </td>
                     {col('sector') && (
                       <td className="px-4 py-3.5 text-xs text-zinc-500">{row.sector || '—'}</td>
@@ -437,12 +545,14 @@ export default function ScreenerTable({
                         </td>
                       )
                     })()}
-                    <td className="px-3 py-3.5" onClick={e => e.stopPropagation()}>
-                      <WatchlistButton
-                        ticker={row.ticker}
-                        initialInWatchlist={watchlistTickers.includes(row.ticker)}
-                      />
-                    </td>
+                    {isAuthenticated && (
+                      <td className="px-3 py-3.5" onClick={e => e.stopPropagation()}>
+                        <WatchlistButton
+                          ticker={row.ticker}
+                          initialInWatchlist={watchlistTickers.includes(row.ticker)}
+                        />
+                      </td>
+                    )}
                   </tr>
                 )
               })}
