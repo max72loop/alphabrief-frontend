@@ -1,4 +1,6 @@
 import Link from "next/link";
+import ScoreCards from "@/components/ScoreCards";
+import StickyBanner from "@/components/StickyBanner";
 
 export default function Home() {
   return (
@@ -76,91 +78,7 @@ export default function Home() {
         <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
           Aperçu en direct · Mis à jour chaque nuit
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl w-full">
-          {[
-            {
-              ticker: "AAPL",
-              name: "Apple Inc.",
-              score: 74,
-              label: "Bon",
-              change: "+1.42%",
-              changePos: true,
-              scoreColor: "text-emerald-400",
-              barColor: "bg-emerald-500",
-              badgeBg: "bg-emerald-500/10 border-emerald-500/20",
-              badgeText: "text-emerald-400",
-            },
-            {
-              ticker: "META",
-              name: "Meta Platforms",
-              score: 81,
-              label: "Excellent",
-              change: "+2.07%",
-              changePos: true,
-              scoreColor: "text-emerald-400",
-              barColor: "bg-emerald-500",
-              badgeBg: "bg-emerald-500/10 border-emerald-500/20",
-              badgeText: "text-emerald-400",
-            },
-            {
-              ticker: "NKE",
-              name: "Nike Inc.",
-              score: 38,
-              label: "Attention",
-              change: "-0.83%",
-              changePos: false,
-              scoreColor: "text-red-400",
-              barColor: "bg-red-500",
-              badgeBg: "bg-red-500/10 border-red-500/20",
-              badgeText: "text-red-400",
-            },
-          ].map((s) => (
-            <div
-              key={s.ticker}
-              className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 flex flex-col gap-3 hover:border-white/[0.14] transition-colors"
-            >
-              {/* Header */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-                    {s.ticker}
-                  </span>
-                  <p className="text-[0.7rem] text-zinc-500 mt-0.5">{s.name}</p>
-                </div>
-                <span
-                  className={`text-[0.7rem] font-semibold ${
-                    s.changePos ? "text-emerald-400" : "text-red-400"
-                  }`}
-                >
-                  {s.change}
-                </span>
-              </div>
-
-              {/* Score */}
-              <div className="flex items-end gap-2">
-                <span className={`text-4xl font-extrabold leading-none ${s.scoreColor}`}>
-                  {s.score}
-                </span>
-                <span className="text-zinc-600 text-sm mb-0.5">/ 100</span>
-              </div>
-
-              {/* Progress bar */}
-              <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${s.barColor}`}
-                  style={{ width: `${s.score}%` }}
-                />
-              </div>
-
-              {/* Badge */}
-              <span
-                className={`self-start text-[0.65rem] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${s.badgeBg} ${s.badgeText}`}
-              >
-                {s.label}
-              </span>
-            </div>
-          ))}
-        </div>
+        <ScoreCards />
       </section>
 
       {/* ── Pourquoi AlphaBrief ───────────────────────────────────────── */}
@@ -314,6 +232,45 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── FAQ ──────────────────────────────────────────────────────── */}
+      <section className="px-6 pb-24 max-w-2xl mx-auto w-full">
+        <h2 className="text-xl font-bold text-center mb-8">Questions fréquentes</h2>
+        <div className="flex flex-col divide-y divide-white/[0.06]">
+          {[
+            {
+              q: "D'où viennent les données ?",
+              a: "Les données financières proviennent de sources publiques (rapports SEC, Yahoo Finance) et sont recalculées chaque nuit. Les cours temps réel sont fournis via une API dédiée.",
+            },
+            {
+              q: "Le score est-il fiable pour prendre des décisions ?",
+              a: "AlphaBrief est un outil d'aide à la décision, pas un conseil financier. Le score synthétise des données objectives mais ne remplace pas votre propre analyse ni un conseiller agréé MIF II.",
+            },
+            {
+              q: "Quelle est la différence avec l'offre gratuite et Pro ?",
+              a: "L'offre gratuite donne accès à 5 analyses complètes par jour. L'offre Pro débloque les analyses illimitées, les alertes de score, la watchlist avancée et les données historiques.",
+            },
+            {
+              q: "Quelles actions sont couvertes ?",
+              a: "Plus de 1 500 actions américaines (NYSE, NASDAQ) sont disponibles. La couverture des marchés européens est en cours de développement.",
+            },
+            {
+              q: "Puis-je annuler mon abonnement à tout moment ?",
+              a: "Oui. L'abonnement Pro est sans engagement, annulable en un clic depuis les paramètres. Aucuns frais cachés.",
+            },
+          ].map((item) => (
+            <details key={item.q} className="group py-4 cursor-pointer list-none">
+              <summary className="flex items-center justify-between gap-4 text-sm font-semibold text-white select-none marker:hidden">
+                {item.q}
+                <span className="text-zinc-500 group-open:rotate-45 transition-transform duration-200 text-lg leading-none flex-shrink-0">
+                  +
+                </span>
+              </summary>
+              <p className="mt-3 text-sm text-zinc-400 leading-relaxed">{item.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
       {/* ── Footer ────────────────────────────────────────────────────── */}
       <footer className="border-t border-white/[0.06] px-6 py-6 text-center text-xs text-zinc-600">
         <p>
@@ -328,6 +285,7 @@ export default function Home() {
         </p>
       </footer>
 
+      <StickyBanner />
     </div>
   );
 }
