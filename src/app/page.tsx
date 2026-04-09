@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ScoreCards from "@/components/ScoreCards";
 import StickyBanner from "@/components/StickyBanner";
+import StatsBar from "@/components/StatsBar";
 
 export default function Home() {
   return (
@@ -39,7 +40,15 @@ export default function Home() {
       </nav>
 
       {/* ── Hero ──────────────────────────────────────────────────────── */}
-      <section className="flex flex-col items-center justify-center text-center px-6 pt-36 pb-24 flex-1">
+      <section className="relative flex flex-col items-center justify-center text-center px-6 pt-36 pb-24 flex-1 overflow-hidden">
+        {/* Ambient glow */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        >
+          <div className="w-[600px] h-[400px] rounded-full bg-indigo-600/20 blur-[120px]" />
+          <div className="absolute w-[300px] h-[300px] rounded-full bg-violet-600/15 blur-[100px] translate-x-24 -translate-y-10" />
+        </div>
         <span className="inline-flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/25 px-3 py-1 rounded-full mb-6">
           ✦ 1 500+ actions scorées en temps réel
         </span>
@@ -73,13 +82,17 @@ export default function Home() {
         </p>
       </section>
 
+
       {/* ── Product preview ───────────────────────────────────────────── */}
-      <section className="flex flex-col items-center px-6 pb-24 gap-6">
+      <section className="flex flex-col items-center px-6 pb-16 gap-6">
         <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
           Aperçu en direct · Mis à jour chaque nuit
         </p>
         <ScoreCards />
       </section>
+
+      {/* ── Stats bar ─────────────────────────────────────────────────── */}
+      <StatsBar />
 
       {/* ── Pourquoi AlphaBrief ───────────────────────────────────────── */}
       <section className="px-6 pb-24 max-w-4xl mx-auto w-full">
@@ -189,6 +202,80 @@ export default function Home() {
               <span className="text-sm text-zinc-400">{row.desc}</span>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── Comparatif Gratuit vs Pro ─────────────────────────────────── */}
+      <section className="px-6 pb-24 max-w-3xl mx-auto w-full">
+        <h2 className="text-2xl font-bold text-center mb-2">Gratuit ou Pro ?</h2>
+        <p className="text-center text-zinc-500 text-sm mb-10">
+          Commencez gratuitement, passez Pro quand vous en avez besoin.
+        </p>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {/* Gratuit */}
+          <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-6 flex flex-col gap-4">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-zinc-500">Gratuit</span>
+              <p className="text-3xl font-extrabold mt-1">0 €<span className="text-base font-normal text-zinc-500"> / mois</span></p>
+            </div>
+            <ul className="flex flex-col gap-2 text-sm">
+              {[
+                [true,  "5 analyses complètes par jour"],
+                [true,  "Score sur 3 piliers"],
+                [true,  "Watchlist (5 actions)"],
+                [false, "Analyses illimitées"],
+                [false, "Alertes de score par email"],
+                [false, "Données historiques"],
+                [false, "Export CSV"],
+              ].map(([ok, feat]) => (
+                <li key={feat as string} className="flex items-center gap-2">
+                  <span className={`font-bold flex-shrink-0 ${ok ? "text-emerald-400" : "text-zinc-700"}`}>
+                    {ok ? "✓" : "✕"}
+                  </span>
+                  <span className={ok ? "text-zinc-300" : "text-zinc-600"}>{feat as string}</span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/login"
+              className="mt-auto text-center px-5 py-2.5 border border-white/10 hover:border-white/20 rounded-xl text-sm font-semibold text-zinc-300 hover:text-white transition-colors"
+            >
+              Commencer gratuitement
+            </Link>
+          </div>
+
+          {/* Pro */}
+          <div className="relative bg-indigo-600/10 border border-indigo-500/30 rounded-2xl p-6 flex flex-col gap-4">
+            <span className="absolute top-4 right-4 text-[0.65rem] font-bold uppercase tracking-widest bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
+              Populaire
+            </span>
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-indigo-400">Pro</span>
+              <p className="text-3xl font-extrabold mt-1 text-white">9 €<span className="text-base font-normal text-zinc-500"> / mois</span></p>
+            </div>
+            <ul className="flex flex-col gap-2 text-sm">
+              {[
+                "Analyses illimitées",
+                "Score sur 3 piliers",
+                "Watchlist illimitée",
+                "Alertes de score par email",
+                "Données historiques",
+                "Export CSV",
+                "Support prioritaire",
+              ].map((feat) => (
+                <li key={feat} className="flex items-center gap-2">
+                  <span className="text-emerald-400 font-bold flex-shrink-0">✓</span>
+                  <span className="text-zinc-300">{feat}</span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/pricing"
+              className="mt-auto text-center px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold transition-colors"
+            >
+              Passer Pro →
+            </Link>
+          </div>
         </div>
       </section>
 
