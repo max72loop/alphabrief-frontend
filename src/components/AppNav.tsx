@@ -58,7 +58,7 @@ export default async function AppNav({ activePath }: { activePath?: string }) {
       <Link
         href={href}
         className={`text-sm font-medium transition-colors ${
-          active ? 'text-white' : 'text-zinc-500 hover:text-zinc-200'
+          active ? 'text-[#F0EBDB]' : 'text-[#4A6355] hover:text-[#F0EBDB]'
         }`}
       >
         {label}
@@ -68,10 +68,15 @@ export default async function AppNav({ activePath }: { activePath?: string }) {
 
   return (
     <>
-      <nav className="flex items-center px-6 h-14 border-b border-white/[0.06] bg-[#0a0a14] sticky top-0 z-40">
+      <nav className="flex items-center px-6 h-14 border-b border-[#1A2520] bg-[#0A0F0C] sticky top-0 z-40">
         {/* Brand */}
-        <Link href="/dashboard" className="text-base font-bold tracking-tight mr-8 shrink-0">
-          Alpha<span className="text-indigo-400">Brief</span>
+        <Link href="/dashboard" className="tracking-tight mr-8 shrink-0 select-none">
+          <span
+            className="text-xl text-[#7EE5A3]"
+            style={{ fontFamily: "var(--font-fraunces)", fontStyle: "italic", fontWeight: 500 }}
+          >α</span>
+          <span className="text-lg font-bold text-[#F0EBDB]">lpha</span>
+          <span className="text-lg font-medium text-[#F0EBDB]">Brief</span>
         </Link>
 
         {/* Nav links */}
@@ -86,10 +91,10 @@ export default async function AppNav({ activePath }: { activePath?: string }) {
         {/* Right */}
         <div className="flex items-center gap-4">
           {/* Alertes */}
-          <Link href="/alerts" className={`relative text-sm font-medium transition-colors ${activePath === '/alerts' ? 'text-white' : 'text-zinc-500 hover:text-zinc-200'}`}>
+          <Link href="/alerts" className={`relative text-sm font-medium transition-colors ${activePath === '/alerts' ? 'text-[#F0EBDB]' : 'text-[#4A6355] hover:text-[#F0EBDB]'}`}>
             Alertes
             {unread > 0 && (
-              <span className="absolute -top-1.5 -right-3 bg-indigo-500 text-white text-[0.55rem] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+              <span className="absolute -top-1.5 -right-3 bg-[#7EE5A3] text-[#0A0F0C] text-[0.55rem] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                 {unread > 9 ? '9+' : unread}
               </span>
             )}
@@ -101,8 +106,8 @@ export default async function AppNav({ activePath }: { activePath?: string }) {
             <Link href="/pricing" title="Passer à Premium pour des analyses illimitées"
               className={`hidden sm:flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border transition-colors
                 ${analysesInfo.remaining === 0
-                  ? 'border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20'
-                  : 'border-white/[0.08] bg-white/[0.03] text-zinc-500 hover:text-zinc-300'
+                  ? 'border-[#E5A04E]/40 bg-[#E5A04E]/10 text-[#E5A04E] hover:bg-[#E5A04E]/20'
+                  : 'border-[#1A2520] bg-[#0F1A13] text-[#4A6355] hover:text-[#F0EBDB]'
                 }`}>
               <span className="tabular-nums">{analysesInfo.remaining}/5</span>
               <span className="text-[0.6rem] uppercase tracking-wide">analyses</span>
@@ -116,12 +121,12 @@ export default async function AppNav({ activePath }: { activePath?: string }) {
             />
           ) : (
             <div className="flex items-center gap-2">
-              <Link href="/login" className="text-sm text-zinc-400 hover:text-white transition-colors">
+              <Link href="/login" className="text-sm text-[#4A6355] hover:text-[#F0EBDB] transition-colors">
                 Se connecter
               </Link>
               <Link
                 href="/login?mode=signup"
-                className="text-sm font-semibold px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+                className="text-sm font-semibold px-3 py-1.5 rounded-lg bg-[#7EE5A3] hover:bg-[#9AEDB5] text-[#0A0F0C] transition-colors"
               >
                 Essayer
               </Link>

@@ -10,10 +10,9 @@ const SCORES = [
     label: "Bon",
     change: "+1.42%",
     changePos: true,
-    scoreColor: "text-emerald-400",
-    barColor: "bg-emerald-500",
-    badgeBg: "bg-emerald-500/10 border-emerald-500/20",
-    badgeText: "text-emerald-400",
+    scoreColor: "text-[#7EE5A3]",
+    barColor: "bg-[#7EE5A3]",
+    badgeStyle: { background: "rgba(126,229,163,0.1)", border: "1px solid rgba(126,229,163,0.25)", color: "#7EE5A3" },
   },
   {
     ticker: "META",
@@ -22,10 +21,9 @@ const SCORES = [
     label: "Excellent",
     change: "+2.07%",
     changePos: true,
-    scoreColor: "text-emerald-400",
-    barColor: "bg-emerald-500",
-    badgeBg: "bg-emerald-500/10 border-emerald-500/20",
-    badgeText: "text-emerald-400",
+    scoreColor: "text-[#7EE5A3]",
+    barColor: "bg-[#7EE5A3]",
+    badgeStyle: { background: "rgba(126,229,163,0.1)", border: "1px solid rgba(126,229,163,0.25)", color: "#7EE5A3" },
   },
   {
     ticker: "NKE",
@@ -34,10 +32,9 @@ const SCORES = [
     label: "Attention",
     change: "-0.83%",
     changePos: false,
-    scoreColor: "text-red-400",
-    barColor: "bg-red-500",
-    badgeBg: "bg-red-500/10 border-red-500/20",
-    badgeText: "text-red-400",
+    scoreColor: "text-orange-400",
+    barColor: "bg-orange-500",
+    badgeStyle: { background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.25)", color: "#f97316" },
   },
 ];
 
@@ -50,7 +47,6 @@ function useCountUp(target: number, duration = 900, trigger: boolean) {
     const step = (timestamp: number) => {
       if (!start) start = timestamp;
       const progress = Math.min((timestamp - start) / duration, 1);
-      // ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       setValue(Math.round(eased * target));
       if (progress < 1) requestAnimationFrame(step);
@@ -65,34 +61,40 @@ function ScoreCard({ s, trigger }: { s: (typeof SCORES)[0]; trigger: boolean }) 
   const count = useCountUp(s.score, 900, trigger);
 
   return (
-    <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 flex flex-col gap-3 hover:border-white/[0.14] transition-colors">
+    <div className="bg-[#0F1A13] border border-[#1A2520] rounded-2xl p-5 flex flex-col gap-3 hover:border-[#7EE5A3]/30 transition-colors">
       <div className="flex items-start justify-between">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#F0EBDB]">
             {s.ticker}
           </span>
-          <p className="text-[0.7rem] text-zinc-500 mt-0.5">{s.name}</p>
+          <p className="text-[0.7rem] text-[#4A6355] mt-0.5">{s.name}</p>
         </div>
-        <span className={`text-[0.7rem] font-semibold ${s.changePos ? "text-emerald-400" : "text-red-400"}`}>
+        <span className={`text-[0.7rem] font-semibold ${s.changePos ? "text-[#7EE5A3]" : "text-red-400"}`}>
           {s.change}
         </span>
       </div>
 
       <div className="flex items-end gap-2">
-        <span className={`text-4xl font-extrabold leading-none tabular-nums ${s.scoreColor}`}>
+        <span
+          className={`text-4xl font-semibold leading-none tabular-nums ${s.scoreColor}`}
+          style={{ fontFamily: "var(--font-jetbrains-mono)" }}
+        >
           {count}
         </span>
-        <span className="text-zinc-600 text-sm mb-0.5">/ 100</span>
+        <span className="text-[#2A3D30] text-sm mb-0.5">/ 100</span>
       </div>
 
-      <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+      <div className="w-full h-1.5 bg-[#1A2520] rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${s.barColor}`}
           style={{ width: `${(count / 100) * 100}%` }}
         />
       </div>
 
-      <span className={`self-start text-[0.65rem] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${s.badgeBg} ${s.badgeText}`}>
+      <span
+        className="self-start text-[0.65rem] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+        style={s.badgeStyle}
+      >
         {s.label}
       </span>
     </div>

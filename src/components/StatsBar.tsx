@@ -31,11 +31,14 @@ function StatItem({ stat, trigger }: { stat: (typeof STATS)[0]; trigger: boolean
   const count = useCountUp(stat.value, 800, trigger);
   return (
     <div className="flex flex-col items-center gap-1">
-      <span className="text-2xl sm:text-3xl font-extrabold text-white tabular-nums">
+      <span
+        className="text-2xl sm:text-3xl font-semibold text-[#7EE5A3] tabular-nums"
+        style={{ fontFamily: "var(--font-jetbrains-mono)" }}
+      >
         {count.toLocaleString("fr-FR")}
         {stat.suffix}
       </span>
-      <span className="text-xs text-zinc-500 text-center">{stat.label}</span>
+      <span className="text-xs text-[#4A6355] text-center">{stat.label}</span>
     </div>
   );
 }
@@ -57,7 +60,7 @@ export default function StatsBar() {
 
   return (
     <div ref={ref} className="w-full max-w-3xl mx-auto px-6 pb-20">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 bg-white/[0.03] border border-white/[0.07] rounded-2xl px-8 py-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 bg-[#0F1A13] border border-[#1A2520] rounded-2xl px-8 py-6">
         {STATS.map((s) => (
           <StatItem key={s.label} stat={s} trigger={triggered} />
         ))}
