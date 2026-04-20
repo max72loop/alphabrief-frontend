@@ -86,7 +86,7 @@ export default async function PricingPage() {
             </div>
             <div className="mb-6">
               <p className="text-xs uppercase tracking-widest text-indigo-400 mb-1">Premium</p>
-              <p className="text-4xl font-black">9 €<span className="text-xl font-normal text-zinc-400"> / mois</span></p>
+              <p className="text-4xl font-black">4,99 €<span className="text-xl font-normal text-zinc-400"> / mois</span></p>
               <p className="text-zinc-500 text-sm mt-1">Sans engagement</p>
             </div>
             <ul className="space-y-3 text-sm flex-1 mb-8">
