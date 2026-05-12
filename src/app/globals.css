@@ -29,7 +29,50 @@ body {
   font-family: var(--font-inter-tight), 'Helvetica Neue', Arial, sans-serif;
 }
 
+::selection {
+  background: #7EE5A3;
+  color: #0A0F0C;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 /* score bar animation */
 @keyframes bar-grow {
   from { width: 0 }
+}
+
+/* landing animations */
+@keyframes ab-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes ab-ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* score slider thumb */
+input[type="range"].ab-score-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #F0EBDB;
+  border: 3px solid #0A0F0C;
+  box-shadow: 0 0 0 1px #7EE5A3, 0 0 12px rgba(126, 229, 163, 0.4);
+  cursor: grab;
+}
+
+input[type="range"].ab-score-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #F0EBDB;
+  border: 3px solid #0A0F0C;
+  box-shadow: 0 0 0 1px #7EE5A3, 0 0 12px rgba(126, 229, 163, 0.4);
+  cursor: grab;
 }
