@@ -839,7 +839,7 @@ function PaywallBlock({
               href={checkoutUrl}
               className="block w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition-colors text-sm font-bold text-white shadow-lg shadow-indigo-500/20"
             >
-              Passer à Premium — 9 €/mois
+              Passer à Premium — 4,99 €/mois
             </a>
             <Link
               href="/dashboard"

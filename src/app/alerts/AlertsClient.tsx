@@ -15,9 +15,11 @@ type Alert = {
 }
 
 function TypeBadge({ type }: { type: string }) {
-  if (type === 'STRONG_BUY') return <span className="px-2 py-0.5 rounded text-[0.6rem] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">Strong Buy</span>
-  if (type === 'SCORE_JUMP') return <span className="px-2 py-0.5 rounded text-[0.6rem] font-bold uppercase tracking-wider bg-sky-500/15 text-sky-400 border border-sky-500/25">Hausse</span>
-  return <span className="px-2 py-0.5 rounded text-[0.6rem] font-bold uppercase tracking-wider bg-rose-500/15 text-rose-400 border border-rose-500/25">Baisse</span>
+  if (type === 'STRONG_BUY')   return <span className="px-2 py-0.5 rounded text-[0.6rem] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">Strong Buy</span>
+  if (type === 'SCORE_JUMP')   return <span className="px-2 py-0.5 rounded text-[0.6rem] font-bold uppercase tracking-wider bg-sky-500/15 text-sky-400 border border-sky-500/25">Hausse</span>
+  if (type === 'SCORE_DROP')   return <span className="px-2 py-0.5 rounded text-[0.6rem] font-bold uppercase tracking-wider bg-rose-500/15 text-rose-400 border border-rose-500/25">Baisse</span>
+  if (type === 'RSI_OVERSOLD') return <span className="px-2 py-0.5 rounded text-[0.6rem] font-bold uppercase tracking-wider bg-violet-500/15 text-violet-400 border border-violet-500/25">RSI Survente</span>
+  return <span className="px-2 py-0.5 rounded text-[0.6rem] font-bold uppercase tracking-wider bg-zinc-500/15 text-zinc-400 border border-zinc-500/25">{type}</span>
 }
 
 function MarkReadButton() {
