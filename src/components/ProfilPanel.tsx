@@ -36,7 +36,8 @@ export default function ProfilPanel({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0 hover:opacity-85 transition-opacity"
+        className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7EE5A3] to-[#5AB983] flex items-center justify-center text-[#0A0F0C] text-xs font-bold shrink-0 hover:opacity-85 transition-opacity"
+        style={{ fontFamily: "var(--font-fraunces)" }}
       >
         {initials}
       </button>

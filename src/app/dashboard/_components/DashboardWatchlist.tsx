@@ -13,6 +13,8 @@ export type WatchRow = {
   tech: number;
   mom: number;
   alert: boolean;
+  momentum3m?: number | null;
+  rsi14?: number | null;
 };
 
 function toneFor(score: number) {
@@ -206,7 +208,7 @@ export default function DashboardWatchlist({ rows }: { rows: WatchRow[] }) {
             className="ab-watch-headers"
             style={{
               display: "grid",
-              gridTemplateColumns: "60px 1.4fr 90px 1.2fr 1.4fr 90px",
+              gridTemplateColumns: "60px 1.4fr 90px 110px 1.2fr 1.4fr 90px",
               padding: "14px 0",
               gap: 18,
               fontFamily: mono,
@@ -219,6 +221,7 @@ export default function DashboardWatchlist({ rows }: { rows: WatchRow[] }) {
             <span>GAUGE</span>
             <span>TITRE / SECTEUR</span>
             <span style={{ textAlign: "right" }}>SCORE</span>
+            <span style={{ textAlign: "right" }}>MOMENTUM 3M</span>
             <span>DÉCOMPOSITION</span>
             <span>VERDICT</span>
             <span style={{ textAlign: "right" }}>ACTION</span>
@@ -233,7 +236,7 @@ export default function DashboardWatchlist({ rows }: { rows: WatchRow[] }) {
                 className="ab-watch-row"
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "60px 1.4fr 90px 1.2fr 1.4fr 90px",
+                  gridTemplateColumns: "60px 1.4fr 90px 110px 1.2fr 1.4fr 90px",
                   padding: "20px 0",
                   gap: 18,
                   alignItems: "center",
@@ -300,6 +303,31 @@ export default function DashboardWatchlist({ rows }: { rows: WatchRow[] }) {
                   <div style={{ fontFamily: mono, fontSize: 9, color: tone, letterSpacing: "0.16em", marginTop: 4 }}>
                     {bandFor(r.score)}
                   </div>
+                </div>
+
+                {/* Momentum 3M */}
+                <div style={{ textAlign: "right" }}>
+                  {r.momentum3m == null ? (
+                    <span style={{ fontFamily: mono, fontSize: 13, color: C.muted }}>—</span>
+                  ) : (
+                    <>
+                      <div
+                        style={{
+                          fontFamily: mono,
+                          fontSize: 18,
+                          fontWeight: 600,
+                          color: r.momentum3m > 0 ? C.phosphor : r.momentum3m < 0 ? C.sanguine : C.muted,
+                        }}
+                      >
+                        {r.momentum3m > 0 ? "▲" : r.momentum3m < 0 ? "▼" : "—"}{" "}
+                        {Math.abs(r.momentum3m).toFixed(1)}
+                        <span style={{ fontSize: 11, fontWeight: 500 }}>%</span>
+                      </div>
+                      <div style={{ fontFamily: mono, fontSize: 9, color: C.muted, letterSpacing: "0.14em", marginTop: 4 }}>
+                        SUR 3 MOIS
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

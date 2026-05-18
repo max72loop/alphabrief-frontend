@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { C, mono } from "./Gauge";
 
-export function TickerTape() {
+export function TickerTape({ inline = false }: { inline?: boolean } = {}) {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 2200);
@@ -40,8 +40,16 @@ export function TickerTape() {
 
   return (
     <div
-      className="fixed left-0 right-0 z-40 flex items-center overflow-hidden"
-      style={{ top: 56, height: 34, background: C.bg, borderBottom: `1px solid ${C.rule}` }}
+      className={
+        inline
+          ? "relative z-30 flex items-center overflow-hidden w-full"
+          : "fixed left-0 right-0 z-40 flex items-center overflow-hidden"
+      }
+      style={
+        inline
+          ? { height: 34, background: C.bg, borderBottom: `1px solid ${C.rule}` }
+          : { top: 56, height: 34, background: C.bg, borderBottom: `1px solid ${C.rule}` }
+      }
     >
       <div
         className="absolute left-0 top-0 bottom-0 flex items-center gap-2 z-[2]"

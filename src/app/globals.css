@@ -99,9 +99,10 @@ input[type="range"].ab-score-slider::-moz-range-thumb {
   }
   .ab-watch-row {
     grid-template-columns: 52px 1fr 70px !important;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto auto auto;
     grid-template-areas:
       "gauge title score"
+      "mom mom mom"
       "decomp decomp decomp"
       "verdict verdict action" !important;
     row-gap: 12px !important;
@@ -109,9 +110,10 @@ input[type="range"].ab-score-slider::-moz-range-thumb {
   .ab-watch-row > :nth-child(1) { grid-area: gauge; }
   .ab-watch-row > :nth-child(2) { grid-area: title; }
   .ab-watch-row > :nth-child(3) { grid-area: score; }
-  .ab-watch-row > :nth-child(4) { grid-area: decomp; }
-  .ab-watch-row > :nth-child(5) { grid-area: verdict; }
-  .ab-watch-row > :nth-child(6) { grid-area: action; }
+  .ab-watch-row > :nth-child(4) { grid-area: mom; text-align: left !important; }
+  .ab-watch-row > :nth-child(5) { grid-area: decomp; }
+  .ab-watch-row > :nth-child(6) { grid-area: verdict; }
+  .ab-watch-row > :nth-child(7) { grid-area: action; }
 }
 
 @media (max-width: 560px) {

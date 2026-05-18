@@ -9,6 +9,7 @@ export type EditionItem = {
   note: string;
   tag: string;
   watching: boolean;
+  momentum3m?: number | null;
 };
 
 function toneFor(score: number) {
@@ -196,6 +197,19 @@ export default function PersonalEdition({
                   >
                     {it.score}
                   </div>
+                  {it.momentum3m != null && (
+                    <div
+                      style={{
+                        fontFamily: mono,
+                        fontSize: 11,
+                        color: it.momentum3m > 0 ? C.phosphor : it.momentum3m < 0 ? C.sanguine : C.muted,
+                        marginTop: 4,
+                      }}
+                    >
+                      {it.momentum3m > 0 ? "▲" : it.momentum3m < 0 ? "▼" : "—"}{" "}
+                      {Math.abs(it.momentum3m).toFixed(1)}% <span style={{ color: C.muted }}>3M</span>
+                    </div>
+                  )}
                   {it.sector && (
                     <div style={{ fontFamily: mono, fontSize: 9, color: C.muted, marginTop: 4, letterSpacing: "0.12em" }}>
                       {it.sector.toUpperCase()}

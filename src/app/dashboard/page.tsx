@@ -7,6 +7,7 @@ import PersonalEdition, { type EditionItem } from './_components/PersonalEdition
 import DashboardWatchlist, { type WatchRow } from './_components/DashboardWatchlist'
 import QuickScorer, { type RecentItem, type Suggestion } from './_components/QuickScorer'
 import AlertsAndQuota, { type AlertItem, type Quota } from './_components/AlertsAndQuota'
+import { TickerTape } from '@/components/landing/TickerTape'
 
 const GUEST_LIMIT = 20
 const FREE_DAILY_QUOTA = 5
@@ -135,6 +136,8 @@ export default async function DashboardPage() {
       tech: Math.round(r.score_technicals),
       mom: Math.round(r.score_momentum),
       alert: false,
+      momentum3m: r.market_data?.momentum_3m ?? null,
+      rsi14: r.market_data?.rsi_14 ?? null,
     }))
 
   // Fetch alerts (for both alerts panel + flagging watchlist rows)
@@ -197,6 +200,8 @@ export default async function DashboardPage() {
             tech: Math.round(r.score_technicals),
             mom: Math.round(r.score_momentum),
             alert: false,
+            momentum3m: r.market_data?.momentum_3m ?? null,
+            rsi14: r.market_data?.rsi_14 ?? null,
           } as WatchRow)),
       ]
 
@@ -212,6 +217,7 @@ export default async function DashboardPage() {
       note: noteFor(r.score),
       tag: tagFor(r.score, watchSet.has(r.ticker)),
       watching: watchSet.has(r.ticker),
+      momentum3m: r.momentum3m ?? null,
     }))
 
   // Suggestions for QuickScorer = top 4 non-watched
@@ -248,6 +254,7 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#0A0F0C] text-[#F0EBDB]">
       <AppNav activePath="/dashboard" />
+      <TickerTape inline />
       <main>
         <Greeting
           firstName={firstName}

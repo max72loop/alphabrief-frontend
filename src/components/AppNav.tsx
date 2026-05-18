@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import ProfilPanel from './ProfilPanel'
+import NavSearchBox from './NavSearchBox'
 
 async function getUnreadCount() {
   try {
@@ -68,9 +69,9 @@ export default async function AppNav({ activePath }: { activePath?: string }) {
 
   return (
     <>
-      <nav className="flex items-center px-6 h-14 border-b border-[#1A2520] bg-[#0A0F0C] sticky top-0 z-40">
+      <nav className="flex items-center px-6 h-14 border-b border-[#1A2520] bg-[#0A0F0C]/95 backdrop-blur-md sticky top-0 z-40">
         {/* Brand */}
-        <Link href="/dashboard" className="tracking-tight mr-8 shrink-0 select-none">
+        <Link href="/dashboard" className="tracking-tight mr-6 shrink-0 select-none">
           <span
             className="text-xl text-[#7EE5A3]"
             style={{ fontFamily: "var(--font-fraunces)", fontStyle: "italic", fontWeight: 500 }}
@@ -79,8 +80,11 @@ export default async function AppNav({ activePath }: { activePath?: string }) {
           <span className="text-lg font-medium text-[#F0EBDB]">Brief</span>
         </Link>
 
+        {/* Cmd+K search */}
+        {user && <NavSearchBox />}
+
         {/* Nav links */}
-        <div className="flex items-center gap-6 flex-1">
+        <div className="flex items-center gap-5 ml-6 flex-1 min-w-0">
           {navLink('/dashboard', 'Mon suivi', ['/dashboard', '/watchlist', '/ticker'])}
           {navLink('/marche', 'Marché')}
           {navLink('/compare', 'Comparer')}
