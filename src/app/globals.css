@@ -76,3 +76,49 @@ input[type="range"].ab-score-slider::-moz-range-thumb {
   box-shadow: 0 0 0 1px #7EE5A3, 0 0 12px rgba(126, 229, 163, 0.4);
   cursor: grab;
 }
+
+/* dashboard editorial layout — responsive collapses */
+@media (max-width: 900px) {
+  .ab-greeting-grid,
+  .ab-scorer-grid,
+  .ab-alerts-grid {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+  }
+  .ab-edition-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .ab-edition-grid > a:nth-child(2n) {
+    border-right: none !important;
+  }
+  .ab-edition-grid > a {
+    border-bottom: 1px solid #1A2520;
+  }
+  .ab-watch-headers {
+    display: none !important;
+  }
+  .ab-watch-row {
+    grid-template-columns: 52px 1fr 70px !important;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "gauge title score"
+      "decomp decomp decomp"
+      "verdict verdict action" !important;
+    row-gap: 12px !important;
+  }
+  .ab-watch-row > :nth-child(1) { grid-area: gauge; }
+  .ab-watch-row > :nth-child(2) { grid-area: title; }
+  .ab-watch-row > :nth-child(3) { grid-area: score; }
+  .ab-watch-row > :nth-child(4) { grid-area: decomp; }
+  .ab-watch-row > :nth-child(5) { grid-area: verdict; }
+  .ab-watch-row > :nth-child(6) { grid-area: action; }
+}
+
+@media (max-width: 560px) {
+  .ab-edition-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .ab-edition-grid > a {
+    border-right: none !important;
+  }
+}
