@@ -100,7 +100,7 @@ export function Pricing() {
             [false, "Alertes & historique"],
           ]}
           cta="Commencer gratuitement"
-          ctaHref="/login"
+          ctaHref="/login?mode=signup"
           featured={false}
         />
         <PlanCard

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { C, serif, mono, Gauge } from "./Gauge";
 
 type Item = {
@@ -52,14 +53,17 @@ export function DailyEdition() {
             : it.score >= 45 ? C.ember
             : C.sanguine;
           return (
-            <div
+            <Link
               key={it.sym}
+              href={`/ticker/${it.sym}`}
               className="flex flex-col"
               style={{
                 padding: "28px 24px",
                 borderRight: i < ITEMS.length - 1 ? `1px solid ${C.rule}` : "none",
                 gap: 14,
                 background: i === 0 ? `${C.phosphor}05` : "transparent",
+                textDecoration: "none",
+                color: "inherit",
               }}
             >
               <div className="flex justify-between items-center">
@@ -98,10 +102,10 @@ export function DailyEdition() {
                 {it.note}
               </div>
 
-              <a href="#" style={{ marginTop: "auto", fontFamily: mono, fontSize: 10, letterSpacing: "0.16em", color: C.phosphor, textDecoration: "none" }}>
+              <span style={{ marginTop: "auto", fontFamily: mono, fontSize: 10, letterSpacing: "0.16em", color: C.phosphor }}>
                 LIRE L&apos;ANALYSE →
-              </a>
-            </div>
+              </span>
+            </Link>
           );
         })}
       </div>
@@ -111,9 +115,9 @@ export function DailyEdition() {
         style={{ padding: "16px 0", fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.1em" }}
       >
         <span>QUALITY 50% · TECHNICAL 25% · MOMENTUM 25%</span>
-        <a href="#" style={{ color: C.phosphor, textDecoration: "none" }}>
+        <Link href="/dashboard" style={{ color: C.phosphor, textDecoration: "none" }}>
           VOIR L&apos;ÉDITION COMPLÈTE (32 MOUVEMENTS) →
-        </a>
+        </Link>
       </div>
     </section>
   );

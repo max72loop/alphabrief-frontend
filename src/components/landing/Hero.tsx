@@ -1,12 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { C, serif, sans, mono, Gauge } from "./Gauge";
 
 export function Hero() {
   const [score, setScore] = useState(0);
   const [cycle, setCycle] = useState(0);
+  const [query, setQuery] = useState("");
+  const router = useRouter();
+
+  const submitTicker = (e: FormEvent) => {
+    e.preventDefault();
+    const t = query.trim().toUpperCase();
+    if (!t) return;
+    router.push(`/ticker/${encodeURIComponent(t)}`);
+  };
 
   useEffect(() => {
     const tgt = 84;
@@ -71,17 +81,101 @@ export function Hero() {
           Un score unique de 0 à 100, composé chaque nuit à partir des fondamentaux, du technique et du momentum. Plus de vingt métriques — un seul verdict.
         </p>
 
-        <div className="flex gap-3" style={{ marginTop: 40 }}>
-          <Link href="/login" className="inline-flex items-center gap-2.5" style={{
-            padding: "14px 26px", background: C.phosphor, color: C.bg,
-            fontFamily: sans, fontWeight: 600, fontSize: 15, borderRadius: 10, textDecoration: "none",
-          }}>
-            Scorer ma première action <span style={{ fontSize: 16 }}>→</span>
+        <form onSubmit={submitTicker} className="flex gap-2 items-stretch" style={{ marginTop: 40, maxWidth: 520 }}>
+          <div
+            className="flex items-center gap-2.5"
+            style={{
+              flex: 1,
+              padding: "12px 16px",
+              background: C.bgCard,
+              border: `1px solid ${query ? C.phosphor + "60" : C.rule}`,
+              borderRadius: 10,
+              transition: "border-color 0.2s",
+            }}
+          >
+            <span style={{ color: C.phosphor, fontFamily: mono, fontSize: 14 }}>›</span>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="ex. NVDA, AAPL, MSFT…"
+              aria-label="Ticker à scorer"
+              autoComplete="off"
+              spellCheck={false}
+              style={{
+                flex: 1,
+                background: "transparent",
+                border: "none",
+                outline: "none",
+                color: C.ink,
+                fontFamily: mono,
+                fontSize: 15,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+              }}
+            />
+          </div>
+          <button
+            type="submit"
+            className="inline-flex items-center gap-2.5"
+            style={{
+              padding: "0 22px", background: C.phosphor, color: C.bg,
+              fontFamily: sans, fontWeight: 600, fontSize: 15, borderRadius: 10,
+              border: "none", cursor: "pointer", whiteSpace: "nowrap",
+            }}
+          >
+            Scorer <span style={{ fontSize: 16 }}>→</span>
+          </button>
+        </form>
+
+        <div className="flex gap-2 items-center flex-wrap" style={{ marginTop: 14 }}>
+          <span style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.16em", marginRight: 4 }}>
+            ESSAYEZ ·
+          </span>
+          {["NVDA", "AAPL", "MSFT", "TSLA"].map((sym) => (
+            <button
+              key={sym}
+              type="button"
+              onClick={() => setQuery(sym)}
+              style={{
+                padding: "5px 10px",
+                background: "transparent",
+                border: `1px solid ${C.rule}`,
+                borderRadius: 4,
+                color: C.inkDim,
+                fontFamily: mono,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: "pointer",
+                letterSpacing: "0.04em",
+              }}
+            >
+              {sym}
+            </button>
+          ))}
+          <Link
+            href="/dashboard"
+            style={{
+              marginLeft: 8,
+              padding: "5px 10px",
+              fontFamily: mono,
+              fontSize: 11,
+              color: C.muteDeep,
+              textDecoration: "none",
+              letterSpacing: "0.14em",
+            }}
+          >
+            OU PARCOURIR LE SCREENER →
           </Link>
-          <a href="#methode" style={{
-            padding: "14px 24px", border: `1px solid ${C.rule}`,
-            color: C.inkDim, fontFamily: sans, fontSize: 15, borderRadius: 10, textDecoration: "none",
-          }}>
+          <a
+            href="#methode"
+            style={{
+              marginLeft: "auto",
+              fontFamily: sans,
+              fontSize: 13,
+              color: C.inkDim,
+              textDecoration: "none",
+            }}
+          >
             Voir la méthode
           </a>
         </div>

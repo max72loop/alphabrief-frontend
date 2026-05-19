@@ -32,7 +32,7 @@ export function LandingNav() {
           Se connecter
         </Link>
         <Link
-          href="/login"
+          href="/login?mode=signup"
           style={{ padding: "7px 14px", fontFamily: sans, fontSize: 13, fontWeight: 600, background: C.phosphor, color: C.bg, borderRadius: 8, textDecoration: "none" }}
         >
           Essayer gratuitement
