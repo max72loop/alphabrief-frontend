@@ -6,6 +6,9 @@ import WatchlistButton from '@/app/dashboard/WatchlistButton'
 import { Gauge, C, serif, sans, mono } from '@/components/landing/Gauge'
 import { TickerTape } from '@/components/landing/TickerTape'
 import { FREE_DAILY_QUOTA } from '@/lib/quota'
+import DetailsTabs from './_components/DetailsTabs'
+import ShareButton, { AlertButton } from './_components/DetailsActions'
+import ScoreHistoryChart from './_components/ScoreHistoryChart'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -257,14 +260,6 @@ function PaywallBlock({
 function DetailsSubnav({ row, ticker, inWatchlist }: {
   row: TickerScore; ticker: string; inWatchlist: boolean
 }) {
-  const tabs = [
-    { id: 'overview',     label: "Vue d'ensemble" },
-    { id: 'fundamentals', label: 'Fondamentaux' },
-    { id: 'technicals',   label: 'Technique' },
-    { id: 'momentum',     label: 'Momentum' },
-    { id: 'history',      label: 'Historique' },
-    { id: 'peers',        label: 'Pairs' },
-  ]
   return (
     <div style={{
       position: 'sticky', top: 56, zIndex: 30,
@@ -284,18 +279,7 @@ function DetailsSubnav({ row, ticker, inWatchlist }: {
           </span>
         </div>
 
-        <div style={{ flex: 1, display: 'flex', gap: 4, marginLeft: 20 }}>
-          {tabs.map(t => (
-            <a key={t.id} href={`#${t.id}`} style={{
-              padding: '6px 12px', background: 'transparent',
-              color: C.muteDeep, textDecoration: 'none',
-              fontFamily: sans, fontSize: 13, fontWeight: 400,
-              borderBottom: '2px solid transparent', marginBottom: -1,
-            }}>
-              {t.label}
-            </a>
-          ))}
-        </div>
+        <DetailsTabs />
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span style={{
@@ -308,6 +292,8 @@ function DetailsSubnav({ row, ticker, inWatchlist }: {
             <WatchlistButton ticker={ticker} initialInWatchlist={inWatchlist} size="sm" />
             {inWatchlist ? 'SUIVI' : 'SUIVRE'}
           </span>
+          <AlertButton ticker={ticker} />
+          <ShareButton ticker={ticker} companyName={row.company_name} />
         </div>
       </div>
     </div>
@@ -840,31 +826,15 @@ function ScoreHistorySection({ history, currentScore }: {
   }
 
   const points = history.map(h => ({ score: h.score, iso: h.scored_at }))
-  // Use currentScore for the latest point to keep alignment with the masthead
-  const seriesWithCurrent = [...points.slice(0, -1), { score: currentScore, iso: points[points.length - 1].iso }]
-  const W = 1100, H = 280, P = { l: 50, r: 30, t: 20, b: 36 }
-  const ix = (i: number) => P.l + (i / Math.max(1, seriesWithCurrent.length - 1)) * (W - P.l - P.r)
-  const iy = (s: number) => P.t + (1 - s / 100) * (H - P.t - P.b)
-  const path = seriesWithCurrent.map((p, i) => `${i === 0 ? 'M' : 'L'} ${ix(i)} ${iy(p.score)}`).join(' ')
-  const area = path + ` L ${ix(seriesWithCurrent.length - 1)} ${H - P.b} L ${ix(0)} ${H - P.b} Z`
-
-  const bands = [
-    { min: 75, max: 100, c: C.phosphor,     lab: 'EXCELLENT' },
-    { min: 60, max: 75,  c: C.phosphorSoft, lab: 'BON' },
-    { min: 45, max: 60,  c: C.ember,        lab: 'NEUTRE' },
-    { min: 30, max: 45,  c: '#E58A4E',      lab: 'ATTENTION' },
-    { min: 0,  max: 30,  c: C.sanguine,     lab: 'RISQUÉ' },
-  ]
-
-  const firstScore = Math.round(seriesWithCurrent[0].score)
-  const lastScore = Math.round(seriesWithCurrent[seriesWithCurrent.length - 1].score)
+  const firstScore = Math.round(points[0].score)
+  const lastScore = Math.round(currentScore)
   const delta = lastScore - firstScore
-  const firstDate = new Date(seriesWithCurrent[0].iso)
-  const lastDate = new Date(seriesWithCurrent[seriesWithCurrent.length - 1].iso)
+  const firstDate = new Date(points[0].iso)
+  const lastDate = new Date(points[points.length - 1].iso)
   const days = Math.max(1, Math.round((lastDate.getTime() - firstDate.getTime()) / 86_400_000))
   const periodLabel = days >= 365 ? `${Math.round(days / 365)} an${days >= 730 ? 's' : ''}`
-    : days >= 30 ? `${Math.round(days / 30)} mois`
-    : `${days} jours`
+    : days >= 30 ? `${Math.round(days / 30)} M`
+    : `${days} J`
 
   return (
     <section id="history" style={{ padding: '40px 40px 60px', maxWidth: 1320, margin: '0 auto' }}>
@@ -888,59 +858,9 @@ function ScoreHistorySection({ history, currentScore }: {
             </span>
           </h2>
         </div>
-        <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.18em' }}>
-          {seriesWithCurrent.length} POINTS · 1/JOUR
-        </div>
       </div>
 
-      <div style={{
-        background: C.bgCard, border: `1px solid ${C.rule}`, borderRadius: 16,
-        padding: '28px 28px 22px', marginTop: 16,
-      }}>
-        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-          <defs>
-            <linearGradient id="score-area" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"  stopColor={C.phosphor} stopOpacity="0.25" />
-              <stop offset="100%" stopColor={C.phosphor} stopOpacity="0" />
-            </linearGradient>
-          </defs>
-
-          {[100, 75, 60, 45, 30, 0].map(y => (
-            <g key={y}>
-              <line x1={P.l} y1={iy(y)} x2={W - P.r} y2={iy(y)}
-                stroke={y === 0 || y === 100 ? C.rule : C.ruleDim}
-                strokeDasharray={y === 100 || y === 0 ? '0' : '2 4'} />
-              <text x={P.l - 8} y={iy(y) + 3} textAnchor="end"
-                style={{ fontFamily: mono, fontSize: 10, fill: C.muted }}>
-                {y}
-              </text>
-            </g>
-          ))}
-
-          {bands.map(b => (
-            <text key={b.lab} x={W - P.r - 6} y={iy((b.min + b.max) / 2) + 3} textAnchor="end"
-              style={{ fontFamily: mono, fontSize: 9, fill: b.c, letterSpacing: '0.16em', opacity: 0.5 }}>
-              {b.lab}
-            </text>
-          ))}
-
-          <path d={area} fill="url(#score-area)" />
-          <path d={path} fill="none" stroke={toneFor(lastScore)} strokeWidth="2" strokeLinecap="round" />
-
-          <circle cx={ix(seriesWithCurrent.length - 1)} cy={iy(lastScore)} r="6"
-            fill={toneFor(lastScore)} opacity="0.3" />
-          <circle cx={ix(seriesWithCurrent.length - 1)} cy={iy(lastScore)} r="3"
-            fill={toneFor(lastScore)} />
-        </svg>
-      </div>
-
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
-        padding: '12px 0', fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.1em',
-      }}>
-        <span>1 POINT PAR RECALCUL · RANGE COMPLET DISPONIBLE</span>
-        <span>DU {dateFmt(seriesWithCurrent[0].iso)} AU {dateFmt(seriesWithCurrent[seriesWithCurrent.length - 1].iso)}</span>
-      </div>
+      <ScoreHistoryChart history={points} currentScore={currentScore} />
     </section>
   )
 }
@@ -1126,7 +1046,7 @@ function EventsTimeline({ ticker, history }: { ticker: string; history: ScoreHis
             letterSpacing: '-0.025em', color: C.ink, margin: 0, lineHeight: 1,
           }}>
             {events.length > 0
-              ? <>Cinq variations <span style={{ fontStyle: 'italic', color: C.phosphor }}>marquantes</span>.</>
+              ? <>{events.length} événement{events.length > 1 ? 's' : ''} derrière, <span style={{ fontStyle: 'italic', color: C.phosphor }}>la suite à venir</span>.</>
               : <>Un score <span style={{ fontStyle: 'italic', color: C.phosphor }}>stable</span>.</>
             }
           </h2>

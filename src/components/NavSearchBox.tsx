@@ -25,10 +25,16 @@ export default function NavSearchBox() {
   }, []);
 
   const submit = (e: FormEvent) => {
+    const t = value.trim();
+    if (!t) {
+      e.preventDefault();
+      return;
+    }
+    // Client-side enhancement : utilise router.push pour ne pas recharger la page.
+    // Si la page /search n'est pas atteinte (JS désactivé / erreur d'hydratation),
+    // le navigateur soumet le formulaire vers action="/search" comme fallback.
     e.preventDefault();
-    const t = value.trim().toUpperCase();
-    if (!t) return;
-    router.push(`/ticker/${encodeURIComponent(t)}`);
+    router.push(`/search?q=${encodeURIComponent(t)}`);
     setValue("");
     inputRef.current?.blur();
   };
@@ -39,6 +45,9 @@ export default function NavSearchBox() {
   return (
     <form
       onSubmit={submit}
+      action="/search"
+      method="get"
+      role="search"
       className="hidden md:flex flex-1 max-w-[420px] items-center gap-2.5 ml-2"
       style={{
         padding: "7px 12px",
@@ -59,6 +68,9 @@ export default function NavSearchBox() {
       </span>
       <input
         ref={inputRef}
+        name="q"
+        type="search"
+        autoComplete="off"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onFocus={() => setFocused(true)}
