@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import AppNav from '@/components/AppNav'
 import CompareSelects from './CompareSelects'
+import RadarChart from '@/components/RadarChart'
 
 type Financials = {
   revenue_cagr_3y?: number | null
@@ -166,6 +167,27 @@ export default async function ComparePage({
             <p className="mt-2 text-[#C6C0A9]">
               Lancez <code className="text-[#7EE5A3]" style={{ fontFamily: mono }}>python -m core.cli analyze {tickerA || tickerB}</code> pour scorer ce ticker.
             </p>
+          </div>
+        )}
+
+        {rowA && rowB && (
+          <div className="bg-[#0E1511] border border-[#1A2520] rounded-xl p-6 mb-6">
+            <div className="flex items-baseline justify-between mb-4 flex-wrap gap-3">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-[#7EE5A3]"
+                style={{ fontFamily: mono }}>
+                § PROFIL COMPARÉ
+              </p>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-[#4A6355]"
+                style={{ fontFamily: mono }}>
+                6 axes · plus haut = meilleur
+              </p>
+            </div>
+            <RadarChart
+              tickerA={tickerA}
+              tickerB={tickerB}
+              dataA={rowA}
+              dataB={rowB}
+            />
           </div>
         )}
 
