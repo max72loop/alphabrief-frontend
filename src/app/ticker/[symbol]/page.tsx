@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import AppNav from '@/components/AppNav'
 import WatchlistButton from '@/app/dashboard/WatchlistButton'
 import { Gauge, C, serif, sans, mono } from '@/components/landing/Gauge'
+import { TickerTape } from '@/components/landing/TickerTape'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -1302,6 +1303,7 @@ export default async function TickerPage({ params }: { params: Promise<{ symbol:
   return (
     <div className="min-h-screen" style={{ background: C.bg, color: C.ink }}>
       <AppNav activePath="" />
+      <TickerTape inline />
       <DetailsSubnav row={row} ticker={ticker} inWatchlist={inWatchlist} />
 
       <main>
