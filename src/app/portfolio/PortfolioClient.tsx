@@ -13,13 +13,15 @@ function fmt(v: number | null, decimals = 2, suffix = '') {
 }
 function fmtEur(v: number | null) { return v != null ? v.toFixed(2) + ' €' : '—' }
 function scoreTier(s: number) { return s >= 70 ? 'high' : s >= 50 ? 'mid' : 'low' }
-const tierColor = { high: 'text-emerald-400', mid: 'text-amber-400', low: 'text-rose-400' }
-const tierBg    = { high: 'bg-emerald-500/10', mid: 'bg-amber-500/10', low: 'bg-rose-500/10' }
+const tierColor = { high: 'text-[#7EE5A3]', mid: 'text-[#E5A04E]', low: 'text-[#D85F66]' }
+const tierBg    = { high: 'bg-[#7EE5A3]/10', mid: 'bg-[#E5A04E]/10', low: 'bg-[#D85F66]/10' }
+
+const mono = 'var(--font-jetbrains-mono, monospace)'
+const inputCls = "w-28 px-3 py-2 rounded-lg bg-[#13201A] border border-[#1A2520] text-sm text-[#F0EBDB] placeholder-[#4A6355] focus:border-[#7EE5A3]/50 outline-none"
 
 export default function PortfolioClient({
   initialHoldings,
   scoreMap,
-  userId,
 }: {
   initialHoldings: Holding[]
   scoreMap: Record<string, ScoreInfo>
@@ -36,7 +38,6 @@ export default function PortfolioClient({
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  // Fetch live prices
   useEffect(() => {
     if (!holdings.length) return
     const tickers = holdings.map(h => h.ticker).join(',')
@@ -84,7 +85,6 @@ export default function PortfolioClient({
     router.refresh()
   }
 
-  // Stats
   const stats = holdings.reduce((acc, h) => {
     const p = prices[h.ticker]
     const invested = h.quantity * h.buy_price
@@ -99,50 +99,54 @@ export default function PortfolioClient({
       {holdings.length > 0 && (
         <div className="grid grid-cols-3 gap-3 mb-6">
           {[
-            { label: 'Investi', val: fmtEur(stats.invested) },
-            { label: 'Valeur actuelle', val: fmtEur(stats.value) },
-            { label: 'P&L', val: (stats.pnl >= 0 ? '+' : '') + stats.pnl.toFixed(2) + ' €', color: stats.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400' },
+            { label: 'INVESTI',         val: fmtEur(stats.invested), color: '#F0EBDB' },
+            { label: 'VALEUR ACTUELLE', val: fmtEur(stats.value),    color: '#F0EBDB' },
+            { label: 'P&L',             val: (stats.pnl >= 0 ? '+' : '') + stats.pnl.toFixed(2) + ' €', color: stats.pnl >= 0 ? '#7EE5A3' : '#D85F66' },
           ].map(s => (
-            <div key={s.label} className="rounded-xl border border-white/[0.06] bg-white/[0.01] p-4 text-center">
-              <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">{s.label}</div>
-              <div className={`text-lg font-bold ${s.color ?? 'text-white'}`}>{s.val}</div>
+            <div key={s.label} className="rounded-xl border border-[#1A2520] bg-[#0E1511] p-4 text-center">
+              <div className="text-[10px] uppercase tracking-[0.18em] text-[#6D7A72] mb-2" style={{ fontFamily: mono }}>{s.label}</div>
+              <div className="text-lg font-bold tabular-nums" style={{ color: s.color, fontFamily: mono }}>{s.val}</div>
             </div>
           ))}
         </div>
       )}
 
       {/* Add form */}
-      <form onSubmit={add} className="rounded-xl border border-white/[0.06] bg-white/[0.01] p-4 mb-6">
+      <form onSubmit={add} className="rounded-xl border border-[#1A2520] bg-[#0E1511] p-4 mb-6">
         <div className="flex flex-wrap gap-2">
           <input value={ticker} onChange={e => setTicker(e.target.value.toUpperCase())} placeholder="Ticker" required
-            className="w-28 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-zinc-600 focus:border-indigo-500/50 outline-none" />
+            className={inputCls} />
           <input value={qty} onChange={e => setQty(e.target.value)} type="number" step="any" min="0" placeholder="Quantité"
-            className="w-28 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-zinc-300 focus:border-indigo-500/50 outline-none" />
+            className={inputCls} />
           <input value={pru} onChange={e => setPru(e.target.value)} type="number" step="any" min="0" placeholder="PRU (€)"
-            className="w-28 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-zinc-300 focus:border-indigo-500/50 outline-none" />
+            className={inputCls} />
           <button type="submit" disabled={loading}
-            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-sm font-semibold text-white transition-colors">
+            className="px-4 py-2 rounded-lg bg-[#7EE5A3] hover:bg-[#9AEDB5] disabled:opacity-50 text-sm font-semibold text-[#0A0F0C] transition-colors">
             Ajouter
           </button>
         </div>
       </form>
 
       {holdings.length === 0 ? (
-        <div className="rounded-xl border border-white/[0.06] p-10 text-center text-zinc-500">
-          <p className="font-medium mb-1">Portefeuille vide</p>
-          <p className="text-sm">Ajoutez vos positions pour suivre votre P&L.</p>
+        <div className="rounded-xl border border-[#1A2520] bg-[#0E1511] p-10 text-center">
+          <p className="font-medium mb-1 text-[#C6C0A9]"
+            style={{ fontFamily: 'var(--font-fraunces, serif)', fontStyle: 'italic', fontSize: 17 }}>
+            Portefeuille vide.
+          </p>
+          <p className="text-sm text-[#6D7A72] mt-2">Ajoutez vos positions pour suivre votre P&L.</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-white/[0.06] overflow-x-auto">
+        <div className="rounded-xl border border-[#1A2520] bg-[#0E1511] overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06] bg-white/[0.02]">
+              <tr className="border-b border-[#1A2520]">
                 {['Ticker','Score','Qté','PRU (€)','Cours (€)','Var. jour','Valeur (€)','P&L','Actions'].map(h => (
-                  <th key={h} className={`px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wider ${h === 'Ticker' ? 'text-left' : 'text-right'} ${['Score','Actions'].includes(h) ? 'text-center' : ''}`}>{h}</th>
+                  <th key={h} className={`px-4 py-3 text-[10px] uppercase tracking-[0.16em] text-[#6D7A72] ${h === 'Ticker' ? 'text-left' : 'text-right'} ${['Score','Actions'].includes(h) ? 'text-center' : ''}`}
+                    style={{ fontFamily: mono }}>{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04]">
+            <tbody className="divide-y divide-[#1A2520]">
               {holdings.map(h => {
                 const p = prices[h.ticker]
                 const info = scoreMap[h.ticker]
@@ -154,51 +158,57 @@ export default function PortfolioClient({
                 const tier = info ? scoreTier(info.score_total) : null
 
                 if (editId === h.id) return (
-                  <tr key={h.id} className="bg-indigo-500/[0.03]">
-                    <td className="px-4 py-3 font-bold">{h.ticker}</td>
-                    <td className="px-4 py-3 text-center text-zinc-500">—</td>
-                    <td className="px-4 py-3 text-right"><input type="number" value={editQty} onChange={e => setEditQty(e.target.value)} step="any" className="w-20 px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] text-sm text-right outline-none focus:border-indigo-500/50" /></td>
-                    <td className="px-4 py-3 text-right"><input type="number" value={editPru} onChange={e => setEditPru(e.target.value)} step="any" className="w-20 px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] text-sm text-right outline-none focus:border-indigo-500/50" /></td>
+                  <tr key={h.id} className="bg-[#7EE5A3]/[0.04]">
+                    <td className="px-4 py-3 font-bold text-[#F0EBDB]">{h.ticker}</td>
+                    <td className="px-4 py-3 text-center text-[#6D7A72]">—</td>
+                    <td className="px-4 py-3 text-right">
+                      <input type="number" value={editQty} onChange={e => setEditQty(e.target.value)} step="any"
+                        className="w-20 px-2 py-1 rounded bg-[#13201A] border border-[#1A2520] text-sm text-right text-[#F0EBDB] outline-none focus:border-[#7EE5A3]/50" />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <input type="number" value={editPru} onChange={e => setEditPru(e.target.value)} step="any"
+                        className="w-20 px-2 py-1 rounded bg-[#13201A] border border-[#1A2520] text-sm text-right text-[#F0EBDB] outline-none focus:border-[#7EE5A3]/50" />
+                    </td>
                     <td colSpan={4} />
                     <td className="px-4 py-3 text-center">
                       <div className="flex gap-1 justify-center">
-                        <button onClick={() => saveEdit(h.id)} className="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold transition-colors">OK</button>
-                        <button onClick={() => setEditId(null)} className="px-2 py-1 rounded bg-white/[0.06] text-xs text-zinc-400 hover:text-white transition-colors">Annuler</button>
+                        <button onClick={() => saveEdit(h.id)} className="px-2 py-1 rounded bg-[#7EE5A3] hover:bg-[#9AEDB5] text-xs font-semibold text-[#0A0F0C] transition-colors">OK</button>
+                        <button onClick={() => setEditId(null)} className="px-2 py-1 rounded bg-[#13201A] text-xs text-[#6D7A72] hover:text-[#F0EBDB] transition-colors">Annuler</button>
                       </div>
                     </td>
                   </tr>
                 )
 
                 return (
-                  <tr key={h.id} className="hover:bg-white/[0.02] transition-colors">
+                  <tr key={h.id} className="hover:bg-[#13201A] transition-colors">
                     <td className="px-4 py-3.5">
-                      <Link href={`/ticker/${h.ticker}`} className="font-bold text-white hover:text-indigo-400 transition-colors">
+                      <Link href={`/ticker/${h.ticker}`} className="font-bold text-[#F0EBDB] hover:text-[#7EE5A3] transition-colors">
                         {info?.company_name || h.ticker}
                       </Link>
-                      {info?.company_name && <div className="text-xs text-zinc-600">{h.ticker}</div>}
+                      {info?.company_name && <div className="text-[10px] uppercase tracking-[0.12em] text-[#4A6355] mt-0.5" style={{ fontFamily: mono }}>{h.ticker}</div>}
                     </td>
                     <td className="px-4 py-3.5 text-center">
                       {info && tier ? (
-                        <span className={`inline-block w-10 h-7 rounded text-xs font-bold leading-7 ${tierColor[tier]} ${tierBg[tier]}`}>
+                        <span className={`inline-block w-10 h-7 rounded text-xs font-bold leading-7 ${tierColor[tier]} ${tierBg[tier]}`} style={{ fontFamily: mono }}>
                           {info.score_total}
                         </span>
-                      ) : <span className="text-zinc-600">—</span>}
+                      ) : <span className="text-[#4A6355]">—</span>}
                     </td>
-                    <td className="px-4 py-3.5 text-right text-zinc-400">{fmt(h.quantity)}</td>
-                    <td className="px-4 py-3.5 text-right text-zinc-400">{fmt(h.buy_price)}</td>
-                    <td className="px-4 py-3.5 text-right text-zinc-300">{fmt(currentPrice)}</td>
-                    <td className={`px-4 py-3.5 text-right tabular-nums ${p?.change_pct != null ? (p.change_pct >= 0 ? 'text-emerald-400' : 'text-rose-400') : 'text-zinc-600'}`}>
+                    <td className="px-4 py-3.5 text-right text-[#C6C0A9] tabular-nums" style={{ fontFamily: mono }}>{fmt(h.quantity)}</td>
+                    <td className="px-4 py-3.5 text-right text-[#C6C0A9] tabular-nums" style={{ fontFamily: mono }}>{fmt(h.buy_price)}</td>
+                    <td className="px-4 py-3.5 text-right text-[#F0EBDB] tabular-nums" style={{ fontFamily: mono }}>{fmt(currentPrice)}</td>
+                    <td className={`px-4 py-3.5 text-right tabular-nums ${p?.change_pct != null ? (p.change_pct >= 0 ? 'text-[#7EE5A3]' : 'text-[#D85F66]') : 'text-[#4A6355]'}`} style={{ fontFamily: mono }}>
                       {p?.change_pct != null ? (p.change_pct >= 0 ? '+' : '') + p.change_pct.toFixed(2) + '%' : '—'}
                     </td>
-                    <td className="px-4 py-3.5 text-right text-zinc-300">{fmtEur(value)}</td>
-                    <td className={`px-4 py-3.5 text-right tabular-nums font-medium ${pnl != null ? (pnl >= 0 ? 'text-emerald-400' : 'text-rose-400') : 'text-zinc-600'}`}>
+                    <td className="px-4 py-3.5 text-right text-[#F0EBDB] tabular-nums" style={{ fontFamily: mono }}>{fmtEur(value)}</td>
+                    <td className={`px-4 py-3.5 text-right tabular-nums font-medium ${pnl != null ? (pnl >= 0 ? 'text-[#7EE5A3]' : 'text-[#D85F66]') : 'text-[#4A6355]'}`} style={{ fontFamily: mono }}>
                       {pnl != null ? (pnl >= 0 ? '+' : '') + pnl.toFixed(2) + ' €' : '—'}
-                      {pnlPct != null && <div className="text-xs opacity-70">{pnlPct >= 0 ? '+' : ''}{pnlPct.toFixed(1)}%</div>}
+                      {pnlPct != null && <div className="text-[10px] opacity-70">{pnlPct >= 0 ? '+' : ''}{pnlPct.toFixed(1)}%</div>}
                     </td>
                     <td className="px-4 py-3.5 text-center">
                       <div className="flex gap-1 justify-center">
-                        <button onClick={() => startEdit(h)} className="px-2.5 py-1 rounded bg-white/[0.05] text-xs text-zinc-400 hover:text-white hover:bg-white/[0.1] transition-colors">Éditer</button>
-                        <button onClick={() => remove(h.id)} className="px-2.5 py-1 rounded bg-white/[0.05] text-xs text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors">Retirer</button>
+                        <button onClick={() => startEdit(h)} className="px-2.5 py-1 rounded bg-[#13201A] text-[10px] uppercase tracking-[0.14em] text-[#6D7A72] hover:text-[#F0EBDB] transition-colors" style={{ fontFamily: mono }}>Éditer</button>
+                        <button onClick={() => remove(h.id)} className="px-2.5 py-1 rounded bg-[#13201A] text-[10px] uppercase tracking-[0.14em] text-[#6D7A72] hover:text-[#D85F66] transition-colors" style={{ fontFamily: mono }}>Retirer</button>
                       </div>
                     </td>
                   </tr>

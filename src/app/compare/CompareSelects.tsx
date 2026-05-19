@@ -1,5 +1,7 @@
 'use client'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+
+const mono = 'var(--font-jetbrains-mono, monospace)'
 
 export default function CompareSelects({ tickers, a, b }: { tickers: string[]; a: string; b: string }) {
   const router = useRouter()
@@ -11,21 +13,21 @@ export default function CompareSelects({ tickers, a, b }: { tickers: string[]; a
     router.push(`/compare?${params.toString()}`)
   }
 
-  const selectCls = 'bg-[#13131f] border border-white/[0.08] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500/50 min-w-[160px]'
+  const selectCls = 'bg-[#13201A] border border-[#1A2520] text-[#F0EBDB] text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#7EE5A3]/50 min-w-[160px]'
 
   return (
     <div className="flex flex-wrap items-center gap-3">
       <div className="flex flex-col gap-1">
-        <label className="text-[0.65rem] font-semibold uppercase tracking-wide text-zinc-500">Ticker A</label>
-        <select className={selectCls} value={a} onChange={e => update('a', e.target.value)}>
+        <label className="text-[10px] uppercase tracking-[0.18em] text-[#6D7A72]" style={{ fontFamily: mono }}>Ticker A</label>
+        <select className={selectCls} value={a} onChange={e => update('a', e.target.value)} style={{ fontFamily: mono }}>
           <option value="">— choisir —</option>
           {tickers.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </div>
-      <span className="text-zinc-600 font-bold text-sm mt-4">VS</span>
+      <span className="text-[#4A6355] font-bold text-sm mt-4" style={{ fontFamily: mono, letterSpacing: '0.14em' }}>VS</span>
       <div className="flex flex-col gap-1">
-        <label className="text-[0.65rem] font-semibold uppercase tracking-wide text-zinc-500">Ticker B</label>
-        <select className={selectCls} value={b} onChange={e => update('b', e.target.value)}>
+        <label className="text-[10px] uppercase tracking-[0.18em] text-[#6D7A72]" style={{ fontFamily: mono }}>Ticker B</label>
+        <select className={selectCls} value={b} onChange={e => update('b', e.target.value)} style={{ fontFamily: mono }}>
           <option value="">— choisir —</option>
           {tickers.filter(t => t !== a).map(t => <option key={t} value={t}>{t}</option>)}
         </select>

@@ -47,31 +47,27 @@ type MetricDef = {
 }
 
 const METRICS: MetricDef[] = [
-  // Score
   { label: 'Score potentiel', section: 'Score', get: r => r.score_total, higherBetter: true, decimals: 0, suffix: '' },
-  // Qualité
   { label: 'Marge brute', section: 'Qualité', get: r => r.financials?.gross_margin, higherBetter: true, decimals: 1, suffix: '%' },
   { label: 'Marge EBIT', get: r => r.financials?.ebit_margin, higherBetter: true, decimals: 1, suffix: '%' },
   { label: 'Marge FCF', get: r => r.financials?.fcf_margin, higherBetter: true, decimals: 1, suffix: '%' },
   { label: 'ROE', get: r => r.financials?.roe, higherBetter: true, decimals: 1, suffix: '%' },
   { label: 'ROIC', get: r => r.financials?.roic, higherBetter: true, decimals: 1, suffix: '%' },
   { label: 'Dette nette / EBITDA', get: r => r.financials?.net_debt_to_ebitda, higherBetter: false, decimals: 2, suffix: 'x' },
-  // Croissance
   { label: 'Rev CAGR 3Y', section: 'Croissance', get: r => r.financials?.revenue_cagr_3y, higherBetter: true, decimals: 1, suffix: '%' },
-  // Valorisation
   { label: 'P/E TTM', section: 'Valorisation', get: r => r.financials?.pe_ttm, higherBetter: false, decimals: 1, suffix: 'x' },
   { label: 'EV/EBITDA', get: r => r.financials?.ev_ebitda_ttm, higherBetter: false, decimals: 1, suffix: 'x' },
   { label: 'FCF Yield TTM', get: r => r.financials?.fcf_yield_ttm, higherBetter: true, decimals: 1, suffix: '%' },
   { label: 'P/B Ratio', get: r => r.financials?.pb_ratio, higherBetter: false, decimals: 2, suffix: 'x' },
-  // Marché
   { label: 'Momentum 12M', section: 'Marché', get: r => r.market_data?.momentum_12m, higherBetter: true, decimals: 1, suffix: '%' },
   { label: 'Momentum 3M', get: r => r.market_data?.momentum_3m, higherBetter: true, decimals: 1, suffix: '%' },
   { label: 'Dividend Yield', get: r => r.market_data?.dividend_yield, higherBetter: true, decimals: 2, suffix: '%' },
   { label: 'Beta', get: r => r.market_data?.beta, higherBetter: false, decimals: 2, suffix: '' },
   { label: 'Cible analystes', get: r => r.market_data?.analyst_target_mean, higherBetter: true, decimals: 2, suffix: '' },
-  // Technique
   { label: 'RSI 14', section: 'Technique', get: r => r.market_data?.rsi_14, higherBetter: null, decimals: 1, suffix: '' },
 ]
+
+const mono = 'var(--font-jetbrains-mono, monospace)'
 
 function fmt(v: number | null | undefined, decimals: number, suffix: string): string {
   if (v == null) return '—'
@@ -84,10 +80,10 @@ function winner(a: number | null | undefined, b: number | null | undefined, high
 }
 
 function scoreColor(s: number) {
-  if (s >= 75) return 'text-emerald-400'
-  if (s >= 60) return 'text-indigo-400'
-  if (s >= 45) return 'text-amber-400'
-  return 'text-rose-400'
+  if (s >= 75) return 'text-[#7EE5A3]'
+  if (s >= 60) return 'text-[#5AB983]'
+  if (s >= 45) return 'text-[#E5A04E]'
+  return 'text-[#D85F66]'
 }
 
 export default async function ComparePage({
@@ -103,7 +99,6 @@ export default async function ComparePage({
   const tickerA = (params.a ?? '').toUpperCase().trim()
   const tickerB = (params.b ?? '').toUpperCase().trim()
 
-  // All available tickers
   const { data: allRows } = await supabase
     .from('ticker_scores')
     .select('ticker,company_name,sector,score_total,score_label,financials,market_data')
@@ -115,7 +110,6 @@ export default async function ComparePage({
   const rowA = tickerA ? rowMap[tickerA] ?? null : null
   const rowB = tickerB ? rowMap[tickerB] ?? null : null
 
-  // Build comparison rows
   const compRows = METRICS.map(m => {
     const vA = rowA ? m.get(rowA) : undefined
     const vB = rowB ? m.get(rowB) : undefined
@@ -129,8 +123,6 @@ export default async function ComparePage({
       winB,
       missingA: vA == null,
       missingB: vB == null,
-      rawA: vA,
-      rawB: vB,
     }
   })
 
@@ -138,41 +130,47 @@ export default async function ComparePage({
   const winsB = compRows.filter(r => r.winB).length
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] text-white">
+    <div className="min-h-screen bg-[#0A0F0C] text-[#F0EBDB]">
       <AppNav activePath="/compare" />
-      <main className="max-w-4xl mx-auto px-6 py-10">
+      <main className="max-w-4xl mx-auto px-6 py-12">
 
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-xl font-bold mb-1">Comparaison côte à côte</h1>
-          <p className="text-sm text-zinc-500">Sélectionnez deux actions pour les comparer sur tous les critères.</p>
+        <div className="mb-10">
+          <p className="text-[10px] uppercase tracking-[0.22em] text-[#7EE5A3] mb-3" style={{ fontFamily: mono }}>
+            § COMPARAISON
+          </p>
+          <h1 className="text-3xl"
+            style={{ fontFamily: 'var(--font-fraunces, serif)', fontWeight: 500, letterSpacing: '-0.02em' }}>
+            Deux titres, <span style={{ fontStyle: 'italic', color: '#7EE5A3' }}>côte à côte</span>.
+          </h1>
+          <p className="text-sm text-[#6D7A72] mt-2">Sélectionnez deux actions pour les comparer sur tous les critères.</p>
         </div>
 
-        {/* Selects */}
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5 mb-8">
+        <div className="bg-[#0E1511] border border-[#1A2520] rounded-xl p-5 mb-8">
           <CompareSelects tickers={tickers} a={tickerA} b={tickerB} />
         </div>
 
-        {/* No selection */}
         {(!tickerA || !tickerB) && (
-          <div className="text-center py-20 text-zinc-500">
-            <p className="text-lg font-medium mb-2">Choisissez deux tickers pour lancer la comparaison</p>
-            <p className="text-sm">Les données viennent directement des scores calculés.</p>
+          <div className="text-center py-20">
+            <p className="font-medium mb-2 text-[#C6C0A9]"
+              style={{ fontFamily: 'var(--font-fraunces, serif)', fontStyle: 'italic', fontSize: 17 }}>
+              Choisissez deux tickers pour lancer la comparaison.
+            </p>
+            <p className="text-sm text-[#6D7A72]">Les données viennent directement des scores calculés.</p>
           </div>
         )}
 
-        {/* Missing data */}
         {tickerA && tickerB && (!rowA || !rowB) && (
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-5 text-amber-400 text-sm">
+          <div className="bg-[#E5A04E]/10 border border-[#E5A04E]/30 rounded-xl p-5 text-[#E5A04E] text-sm">
             {!rowA && <p>Aucune donnée pour <strong>{tickerA}</strong>.</p>}
             {!rowB && <p>Aucune donnée pour <strong>{tickerB}</strong>.</p>}
-            <p className="mt-2 text-zinc-400">Lancez <code className="text-indigo-400">python -m core.cli analyze {tickerA || tickerB}</code> pour scorer ce ticker.</p>
+            <p className="mt-2 text-[#C6C0A9]">
+              Lancez <code className="text-[#7EE5A3]" style={{ fontFamily: mono }}>python -m core.cli analyze {tickerA || tickerB}</code> pour scorer ce ticker.
+            </p>
           </div>
         )}
 
-        {/* Comparison table */}
         {rowA && rowB && (
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl overflow-hidden">
+          <div className="bg-[#0E1511] border border-[#1A2520] rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <colgroup>
                 <col className="w-[45%]" />
@@ -180,32 +178,31 @@ export default async function ComparePage({
                 <col className="w-[27.5%]" />
               </colgroup>
               <thead>
-                <tr className="border-b border-white/[0.06]">
+                <tr className="border-b border-[#1A2520]">
                   <th className="px-5 py-3 text-left"></th>
-                  {/* Ticker A */}
-                  <th className="px-5 py-4 text-center border-l border-white/[0.06]">
-                    <Link href={`/ticker/${tickerA}`} className="text-base font-bold text-white hover:text-indigo-400 transition-colors">
+                  <th className="px-5 py-4 text-center border-l border-[#1A2520]">
+                    <Link href={`/ticker/${tickerA}`} className="text-base font-bold text-[#F0EBDB] hover:text-[#7EE5A3] transition-colors"
+                      style={{ fontFamily: mono }}>
                       {tickerA}
                     </Link>
-                    <p className="text-xs text-zinc-500 font-normal mt-0.5 truncate">{rowA.company_name}</p>
-                    <p className="text-[0.65rem] text-zinc-600 font-normal">{rowA.sector || '—'}</p>
+                    <p className="text-xs text-[#6D7A72] font-normal mt-0.5 truncate">{rowA.company_name}</p>
+                    <p className="text-[10px] text-[#4A6355] font-normal uppercase tracking-[0.12em]" style={{ fontFamily: mono }}>{rowA.sector || '—'}</p>
                   </th>
-                  {/* Ticker B */}
-                  <th className="px-5 py-4 text-center border-l border-white/[0.06]">
-                    <Link href={`/ticker/${tickerB}`} className="text-base font-bold text-white hover:text-indigo-400 transition-colors">
+                  <th className="px-5 py-4 text-center border-l border-[#1A2520]">
+                    <Link href={`/ticker/${tickerB}`} className="text-base font-bold text-[#F0EBDB] hover:text-[#7EE5A3] transition-colors"
+                      style={{ fontFamily: mono }}>
                       {tickerB}
                     </Link>
-                    <p className="text-xs text-zinc-500 font-normal mt-0.5 truncate">{rowB.company_name}</p>
-                    <p className="text-[0.65rem] text-zinc-600 font-normal">{rowB.sector || '—'}</p>
+                    <p className="text-xs text-[#6D7A72] font-normal mt-0.5 truncate">{rowB.company_name}</p>
+                    <p className="text-[10px] text-[#4A6355] font-normal uppercase tracking-[0.12em]" style={{ fontFamily: mono }}>{rowB.sector || '—'}</p>
                   </th>
                 </tr>
-                {/* Wins row */}
-                <tr className="bg-white/[0.02] border-b border-white/[0.06]">
-                  <td className="px-5 py-2 text-[0.65rem] font-bold uppercase tracking-wide text-zinc-500">Avantages</td>
-                  <td className={`px-5 py-2 text-center font-bold border-l border-white/[0.06] ${winsA > winsB ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                <tr className="bg-[#13201A]/50 border-b border-[#1A2520]">
+                  <td className="px-5 py-2 text-[10px] uppercase tracking-[0.18em] text-[#6D7A72]" style={{ fontFamily: mono }}>Avantages</td>
+                  <td className={`px-5 py-2 text-center font-bold border-l border-[#1A2520] tabular-nums ${winsA > winsB ? 'text-[#7EE5A3]' : 'text-[#C6C0A9]'}`} style={{ fontFamily: mono }}>
                     {winsA} / {compRows.filter(r => r.winA || r.winB).length}
                   </td>
-                  <td className={`px-5 py-2 text-center font-bold border-l border-white/[0.06] ${winsB > winsA ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                  <td className={`px-5 py-2 text-center font-bold border-l border-[#1A2520] tabular-nums ${winsB > winsA ? 'text-[#7EE5A3]' : 'text-[#C6C0A9]'}`} style={{ fontFamily: mono }}>
                     {winsB} / {compRows.filter(r => r.winA || r.winB).length}
                   </td>
                 </tr>
@@ -214,30 +211,31 @@ export default async function ComparePage({
                 {compRows.map((row, i) => (
                   <>
                     {row.section && (
-                      <tr key={`sec-${i}`} className="bg-white/[0.03] border-t border-white/[0.06]">
-                        <td colSpan={3} className="px-5 py-2 text-[0.65rem] font-bold uppercase tracking-wider text-zinc-500">
-                          {row.section}
+                      <tr key={`sec-${i}`} className="bg-[#13201A]/50 border-t border-[#1A2520]">
+                        <td colSpan={3} className="px-5 py-2 text-[10px] uppercase tracking-[0.2em] text-[#7EE5A3]"
+                          style={{ fontFamily: mono }}>
+                          § {row.section}
                         </td>
                       </tr>
                     )}
                     <tr
                       key={row.label}
-                      className={`border-t border-white/[0.04] transition-colors ${
-                        row.winA ? 'bg-emerald-500/[0.04]' : row.winB ? 'bg-indigo-500/[0.03]' : ''
+                      className={`border-t border-[#1A2520]/60 transition-colors ${
+                        row.winA ? 'bg-[#7EE5A3]/[0.04]' : row.winB ? 'bg-[#7EE5A3]/[0.04]' : ''
                       }`}
                     >
-                      <td className="px-5 py-2.5 text-zinc-400">{row.label}</td>
-                      <td className={`px-5 py-2.5 text-center border-l border-white/[0.06] font-mono tabular-nums ${
-                        row.winA ? 'text-emerald-400 font-semibold' : row.missingA ? 'text-zinc-600' : 'text-zinc-300'
-                      }`}>
+                      <td className="px-5 py-2.5 text-[#C6C0A9]">{row.label}</td>
+                      <td className={`px-5 py-2.5 text-center border-l border-[#1A2520] tabular-nums ${
+                        row.winA ? 'text-[#7EE5A3] font-semibold' : row.missingA ? 'text-[#4A6355]' : 'text-[#F0EBDB]'
+                      }`} style={{ fontFamily: mono }}>
                         {row.valA}
-                        {row.winA && <span className="ml-1.5 text-emerald-500 text-xs">+</span>}
+                        {row.winA && <span className="ml-1.5 text-[#7EE5A3] text-xs">+</span>}
                       </td>
-                      <td className={`px-5 py-2.5 text-center border-l border-white/[0.06] font-mono tabular-nums ${
-                        row.winB ? 'text-emerald-400 font-semibold' : row.missingB ? 'text-zinc-600' : 'text-zinc-300'
-                      }`}>
+                      <td className={`px-5 py-2.5 text-center border-l border-[#1A2520] tabular-nums ${
+                        row.winB ? 'text-[#7EE5A3] font-semibold' : row.missingB ? 'text-[#4A6355]' : 'text-[#F0EBDB]'
+                      }`} style={{ fontFamily: mono }}>
                         {row.valB}
-                        {row.winB && <span className="ml-1.5 text-emerald-500 text-xs">+</span>}
+                        {row.winB && <span className="ml-1.5 text-[#7EE5A3] text-xs">+</span>}
                       </td>
                     </tr>
                   </>
@@ -247,12 +245,11 @@ export default async function ComparePage({
           </div>
         )}
 
-        {/* Score summary bar */}
         {rowA && rowB && (
-          <div className="mt-4 flex items-center gap-4 text-sm text-zinc-500">
-            <span>Score : <span className={`font-bold ${scoreColor(rowA.score_total)}`}>{rowA.score_total}/100</span> ({rowA.score_label})</span>
-            <span className="text-zinc-700">vs</span>
-            <span>Score : <span className={`font-bold ${scoreColor(rowB.score_total)}`}>{rowB.score_total}/100</span> ({rowB.score_label})</span>
+          <div className="mt-4 flex items-center gap-4 text-sm text-[#6D7A72] flex-wrap">
+            <span>Score : <span className={`font-bold ${scoreColor(rowA.score_total)}`} style={{ fontFamily: mono }}>{rowA.score_total}/100</span> ({rowA.score_label})</span>
+            <span className="text-[#4A6355]">vs</span>
+            <span>Score : <span className={`font-bold ${scoreColor(rowB.score_total)}`} style={{ fontFamily: mono }}>{rowB.score_total}/100</span> ({rowB.score_label})</span>
           </div>
         )}
       </main>

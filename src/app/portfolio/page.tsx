@@ -25,14 +25,22 @@ export default async function PortfolioPage() {
   const scoreMap = Object.fromEntries((scores ?? []).map(s => [s.ticker, s]))
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] text-white">
+    <div className="min-h-screen bg-[#0A0F0C] text-[#F0EBDB]">
       <AppNav activePath="/portfolio" />
-      <main className="max-w-5xl mx-auto px-6 py-10">
-        <div className="flex items-center gap-3 mb-6">
-          <h1 className="text-xl font-bold">Mon Portefeuille</h1>
-          <span className="text-xs font-semibold text-zinc-500 bg-white/[0.05] border border-white/[0.08] px-2.5 py-1 rounded-full">
-            {holdings?.length ?? 0} position{(holdings?.length ?? 0) !== 1 ? 's' : ''}
-          </span>
+      <main className="max-w-5xl mx-auto px-6 py-12">
+        <div className="mb-10">
+          <p className="text-[10px] uppercase tracking-[0.22em] text-[#7EE5A3] mb-3"
+            style={{ fontFamily: 'var(--font-jetbrains-mono, monospace)' }}>
+            § PORTEFEUILLE
+          </p>
+          <h1 className="text-3xl flex items-baseline gap-3 flex-wrap"
+            style={{ fontFamily: 'var(--font-fraunces, serif)', fontWeight: 500, letterSpacing: '-0.02em' }}>
+            Vos <span style={{ fontStyle: 'italic', color: '#7EE5A3' }}>positions</span>.
+            <span className="text-[10px] uppercase tracking-[0.18em] text-[#6D7A72]"
+              style={{ fontFamily: 'var(--font-jetbrains-mono, monospace)' }}>
+              {holdings?.length ?? 0} {(holdings?.length ?? 0) === 1 ? 'position' : 'positions'}
+            </span>
+          </h1>
         </div>
         <PortfolioClient
           initialHoldings={holdings ?? []}

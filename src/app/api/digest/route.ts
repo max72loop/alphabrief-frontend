@@ -82,17 +82,18 @@ export async function POST(req: NextRequest) {
 }
 
 function scoreColor(s: number) {
-  if (s >= 70) return '#34d399'
-  if (s >= 50) return '#fbbf24'
-  return '#f87171'
+  if (s >= 75) return '#7EE5A3'  // phosphor
+  if (s >= 60) return '#5AB983'  // phosphorSoft
+  if (s >= 45) return '#E5A04E'  // ember
+  return '#D85F66'               // sanguine
 }
 
 function tickerRows(rows: { ticker: string; company_name: string | null; score_total: number }[]) {
   return rows.map(r => `
     <tr>
-      <td style="padding:8px 16px;font-weight:700;color:#fff;font-size:13px">${r.ticker}</td>
-      <td style="padding:8px 16px;color:#71717a;font-size:13px">${r.company_name ?? ''}</td>
-      <td style="padding:8px 16px;font-weight:700;font-size:14px;color:${scoreColor(r.score_total)}">${r.score_total}</td>
+      <td style="padding:10px 18px;font-weight:700;color:#F0EBDB;font-size:13px;font-family:monospace,Menlo,Courier">${r.ticker}</td>
+      <td style="padding:10px 18px;color:#C6C0A9;font-size:13px">${r.company_name ?? ''}</td>
+      <td style="padding:10px 18px;font-weight:700;font-size:14px;color:${scoreColor(r.score_total)};font-family:monospace,Menlo,Courier">${r.score_total}</td>
     </tr>
   `).join('')
 }
@@ -103,33 +104,39 @@ function buildDigestHtml(
   date: string
 ) {
   const watchlistSection = watchlist.length > 0 ? `
-    <h2 style="color:#fff;font-size:14px;font-weight:700;margin:28px 0 10px;letter-spacing:0.05em;text-transform:uppercase">
-      Ton suivi
-    </h2>
-    <table style="width:100%;border-collapse:collapse;background:rgba(255,255,255,0.02);border-radius:8px;overflow:hidden">
+    <p style="color:#7EE5A3;font-size:10px;font-weight:700;margin:32px 0 10px;letter-spacing:0.22em;text-transform:uppercase;font-family:monospace,Menlo,Courier">
+      § VOTRE SUIVI
+    </p>
+    <table style="width:100%;border-collapse:collapse;background:#0E1511;border:1px solid #1A2520;border-radius:8px;overflow:hidden">
       ${tickerRows(watchlist)}
     </table>
   ` : ''
 
   return `<!DOCTYPE html>
 <html>
-<body style="background:#0f0f1a;color:#e4e4e7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
-  <div style="margin-bottom:28px">
-    <span style="font-size:20px;font-weight:800;color:#fff">Alpha<span style="color:#818cf8">Brief</span></span>
+<body style="background:#0A0F0C;color:#F0EBDB;font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;padding:36px 24px">
+  <div style="margin-bottom:30px">
+    <span style="font-size:22px;font-weight:500;color:#F0EBDB;font-family:Georgia,serif">
+      <span style="font-style:italic;color:#7EE5A3">α</span>lpha<span style="font-weight:400">Brief</span>
+    </span>
   </div>
 
-  <h1 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 4px">Digest hebdomadaire</h1>
-  <p style="color:#71717a;font-size:13px;margin:0 0 24px">${date}</p>
+  <p style="color:#7EE5A3;font-size:10px;font-weight:700;margin:0 0 10px;letter-spacing:0.22em;text-transform:uppercase;font-family:monospace,Menlo,Courier">
+    § DIGEST HEBDOMADAIRE
+  </p>
+  <h1 style="color:#F0EBDB;font-size:30px;font-weight:500;margin:0 0 4px;letter-spacing:-0.02em;line-height:1.05">
+    Édition du <span style="font-style:italic;color:#7EE5A3">${date}</span>.
+  </h1>
 
-  <h2 style="color:#fff;font-size:14px;font-weight:700;margin:0 0 10px;letter-spacing:0.05em;text-transform:uppercase">
-    Top 10 du screener
-  </h2>
-  <table style="width:100%;border-collapse:collapse;background:rgba(255,255,255,0.02);border-radius:8px;overflow:hidden">
+  <p style="color:#7EE5A3;font-size:10px;font-weight:700;margin:32px 0 10px;letter-spacing:0.22em;text-transform:uppercase;font-family:monospace,Menlo,Courier">
+    § TOP 10 DU SCREENER
+  </p>
+  <table style="width:100%;border-collapse:collapse;background:#0E1511;border:1px solid #1A2520;border-radius:8px;overflow:hidden">
     <thead>
-      <tr style="border-bottom:1px solid rgba(255,255,255,0.06)">
-        <th style="text-align:left;padding:8px 16px;font-size:11px;color:#71717a;text-transform:uppercase;letter-spacing:0.08em">Ticker</th>
-        <th style="text-align:left;padding:8px 16px;font-size:11px;color:#71717a;text-transform:uppercase;letter-spacing:0.08em">Société</th>
-        <th style="text-align:left;padding:8px 16px;font-size:11px;color:#71717a;text-transform:uppercase;letter-spacing:0.08em">Score</th>
+      <tr style="border-bottom:1px solid #1A2520">
+        <th style="text-align:left;padding:10px 18px;font-size:10px;color:#6D7A72;text-transform:uppercase;letter-spacing:0.16em;font-family:monospace,Menlo,Courier;font-weight:600">Ticker</th>
+        <th style="text-align:left;padding:10px 18px;font-size:10px;color:#6D7A72;text-transform:uppercase;letter-spacing:0.16em;font-family:monospace,Menlo,Courier;font-weight:600">Société</th>
+        <th style="text-align:left;padding:10px 18px;font-size:10px;color:#6D7A72;text-transform:uppercase;letter-spacing:0.16em;font-family:monospace,Menlo,Courier;font-weight:600">Score</th>
       </tr>
     </thead>
     <tbody>${tickerRows(top)}</tbody>
@@ -137,18 +144,18 @@ function buildDigestHtml(
 
   ${watchlistSection}
 
-  <div style="margin-top:36px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06)">
+  <div style="margin-top:40px;padding-top:24px;border-top:1px solid #1A2520">
     <a href="https://maxloop.ovh/dashboard"
-       style="display:inline-block;padding:10px 20px;background:#4f46e5;color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600">
-      Voir le screener →
+       style="display:inline-block;padding:11px 22px;background:#7EE5A3;color:#0A0F0C;text-decoration:none;border-radius:8px;font-size:13px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,sans-serif">
+      Ouvrir le screener →
     </a>
-    <p style="margin:16px 0 0;font-size:11px;color:#3f3f46">
-      <a href="https://maxloop.ovh/settings" style="color:#52525b;text-decoration:underline">Se désabonner</a>
+    <p style="margin:18px 0 0;font-size:10px;color:#4A6355;font-family:monospace,Menlo,Courier;letter-spacing:0.14em;text-transform:uppercase">
+      <a href="https://maxloop.ovh/settings" style="color:#6D7A72;text-decoration:underline">Se désabonner</a>
     </p>
   </div>
 
-  <p style="margin-top:24px;font-size:11px;color:#27272a">
-    AlphaBrief est un outil d'aide à la décision, pas un conseil financier.
+  <p style="margin-top:28px;font-size:10px;color:#4A6355;font-family:monospace,Menlo,Courier;letter-spacing:0.16em;text-transform:uppercase">
+    ALPHABRIEF · OUTIL D'AIDE À LA DÉCISION · NE CONSTITUE PAS UN CONSEIL EN INVESTISSEMENT
   </p>
 </body>
 </html>`

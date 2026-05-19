@@ -24,19 +24,24 @@ export default async function PricingPage() {
     : null
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] text-white">
+    <div className="min-h-screen bg-[#0A0F0C] text-[#F0EBDB]">
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 h-14 border-b border-white/[0.06]">
-        <Link href="/" className="text-base font-bold tracking-tight hover:opacity-80 transition-opacity">
-          Alpha<span className="text-indigo-400">Brief</span>
+      <nav className="flex items-center justify-between px-6 h-14 border-b border-[#1A2520]">
+        <Link href="/" className="text-base tracking-tight hover:opacity-80 transition-opacity select-none">
+          <span
+            className="text-xl text-[#7EE5A3]"
+            style={{ fontFamily: 'var(--font-fraunces, serif)', fontStyle: 'italic', fontWeight: 500 }}
+          >α</span>
+          <span className="text-lg font-bold">lpha</span>
+          <span className="text-lg font-medium">Brief</span>
         </Link>
         <div className="flex items-center gap-3">
           {user ? (
-            <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-white transition-colors">
+            <Link href="/dashboard" className="text-sm text-[#6D7A72] hover:text-[#F0EBDB] transition-colors">
               Dashboard →
             </Link>
           ) : (
-            <Link href="/login" className="text-sm text-zinc-400 hover:text-white transition-colors">
+            <Link href="/login" className="text-sm text-[#6D7A72] hover:text-[#F0EBDB] transition-colors">
               Se connecter
             </Link>
           )}
@@ -45,22 +50,29 @@ export default async function PricingPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-20">
         <div className="text-center mb-14">
-          <h1 className="text-4xl font-black mb-4">
+          <p className="text-[10px] uppercase tracking-[0.22em] text-[#7EE5A3] mb-4">§ TARIFS</p>
+          <h1
+            className="text-5xl mb-5"
+            style={{ fontFamily: 'var(--font-fraunces, serif)', fontWeight: 500, letterSpacing: '-0.025em', lineHeight: 1 }}
+          >
             Analysez les marchés.<br />
-            <span className="text-indigo-400">Sans bruit.</span>
+            <span style={{ fontStyle: 'italic', color: '#7EE5A3' }}>Sans bruit.</span>
           </h1>
-          <p className="text-zinc-400 text-lg max-w-md mx-auto">
+          <p className="text-[#C6C0A9] text-base max-w-md mx-auto leading-relaxed">
             Un score 0–100 par action, calculé sur les fondamentaux, les indicateurs techniques et le momentum.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Free */}
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-7 flex flex-col">
+          <div className="rounded-2xl border border-[#1A2520] bg-[#0E1511] p-7 flex flex-col">
             <div className="mb-6">
-              <p className="text-xs uppercase tracking-widest text-zinc-500 mb-1">Gratuit</p>
-              <p className="text-4xl font-black">0 €</p>
-              <p className="text-zinc-500 text-sm mt-1">Pour toujours</p>
+              <p className="text-[10px] uppercase tracking-[0.22em] text-[#6D7A72] mb-2"
+                style={{ fontFamily: 'var(--font-jetbrains-mono, monospace)' }}>
+                Gratuit
+              </p>
+              <p className="text-4xl font-bold text-[#F0EBDB]">0 €</p>
+              <p className="text-[#6D7A72] text-sm mt-1">Pour toujours</p>
             </div>
             <ul className="space-y-3 text-sm flex-1 mb-8">
               <FeatureRow included text="5 analyses / jour" />
@@ -72,13 +84,14 @@ export default async function PricingPage() {
               <FeatureRow text="Alertes personnalisées" />
             </ul>
             {user ? (
-              <div className="text-center text-sm text-zinc-500 py-3 rounded-xl border border-white/[0.06]">
-                {isPremium ? 'Votre ancien plan' : 'Votre plan actuel'}
+              <div className="text-center text-xs uppercase tracking-[0.16em] text-[#6D7A72] py-3 rounded-xl border border-[#1A2520]"
+                style={{ fontFamily: 'var(--font-jetbrains-mono, monospace)' }}>
+                {isPremium ? 'Ancien plan' : 'Plan actuel'}
               </div>
             ) : (
               <Link
-                href="/login"
-                className="block text-center py-3 rounded-xl border border-white/[0.08] text-sm font-semibold text-zinc-300 hover:bg-white/[0.04] transition-colors"
+                href="/login?mode=signup"
+                className="block text-center py-3 rounded-xl border border-[#1A2520] text-sm font-semibold text-[#C6C0A9] hover:bg-[#13201A] transition-colors"
               >
                 Commencer gratuitement
               </Link>
@@ -86,14 +99,20 @@ export default async function PricingPage() {
           </div>
 
           {/* Premium */}
-          <div className="rounded-2xl border border-indigo-500/40 bg-indigo-500/5 p-7 flex flex-col relative overflow-hidden">
-            <div className="absolute top-4 right-4 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
+          <div className="rounded-2xl border border-[#7EE5A3]/40 bg-[#7EE5A3]/[0.04] p-7 flex flex-col relative overflow-hidden">
+            <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full text-[9px] font-bold bg-[#7EE5A3]/15 text-[#7EE5A3] border border-[#7EE5A3]/30 uppercase tracking-[0.18em]"
+              style={{ fontFamily: 'var(--font-jetbrains-mono, monospace)' }}>
               Populaire
             </div>
             <div className="mb-6">
-              <p className="text-xs uppercase tracking-widest text-indigo-400 mb-1">Premium</p>
-              <p className="text-4xl font-black">4,99 €<span className="text-xl font-normal text-zinc-400"> / mois</span></p>
-              <p className="text-zinc-500 text-sm mt-1">Sans engagement</p>
+              <p className="text-[10px] uppercase tracking-[0.22em] text-[#7EE5A3] mb-2"
+                style={{ fontFamily: 'var(--font-jetbrains-mono, monospace)' }}>
+                Premium
+              </p>
+              <p className="text-4xl font-bold text-[#F0EBDB]">
+                4,99 €<span className="text-xl font-normal text-[#6D7A72]"> / mois</span>
+              </p>
+              <p className="text-[#6D7A72] text-sm mt-1">Sans engagement</p>
             </div>
             <ul className="space-y-3 text-sm flex-1 mb-8">
               <FeatureRow included text="Analyses illimitées" />
@@ -105,26 +124,27 @@ export default async function PricingPage() {
               <FeatureRow included text="Alertes personnalisées" />
             </ul>
             {isPremium ? (
-              <div className="text-center text-sm text-indigo-300 py-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10">
+              <div className="text-center text-sm text-[#7EE5A3] py-3 rounded-xl border border-[#7EE5A3]/30 bg-[#7EE5A3]/10 font-medium">
                 Votre plan actuel ✓
               </div>
             ) : checkoutUrl ? (
               <a
                 href={checkoutUrl}
-                className="block text-center py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition-colors text-sm font-bold text-white shadow-lg shadow-indigo-500/20"
+                className="block text-center py-3 rounded-xl bg-[#7EE5A3] hover:bg-[#9AEDB5] transition-colors text-sm font-bold text-[#0A0F0C]"
               >
-                {user ? 'Passer à Premium' : 'Démarrer l\'essai'}
+                {user ? 'Passer à Premium' : "Démarrer l'essai"}
               </a>
             ) : (
-              <div className="text-center text-sm text-zinc-500 py-3 rounded-xl border border-amber-500/30 bg-amber-500/5">
+              <div className="text-center text-sm text-[#E5A04E] py-3 rounded-xl border border-[#E5A04E]/30 bg-[#E5A04E]/[0.05]">
                 Checkout temporairement indisponible
               </div>
             )}
           </div>
         </div>
 
-        <p className="text-center text-xs text-zinc-600 mt-10">
-          AlphaBrief est un outil d&apos;aide à la décision. Les scores ne constituent pas un conseil financier.
+        <p className="text-center text-[10px] uppercase tracking-[0.18em] text-[#4A6355] mt-12"
+          style={{ fontFamily: 'var(--font-jetbrains-mono, monospace)' }}>
+          ALPHABRIEF · OUTIL D&apos;AIDE À LA DÉCISION · NE CONSTITUE PAS UN CONSEIL EN INVESTISSEMENT
         </p>
       </main>
     </div>
@@ -135,11 +155,11 @@ function FeatureRow({ included = false, text }: { included?: boolean; text: stri
   return (
     <li className="flex items-center gap-2.5">
       {included ? (
-        <span className="text-emerald-400 shrink-0">✓</span>
+        <span className="text-[#7EE5A3] shrink-0">✓</span>
       ) : (
-        <span className="text-zinc-700 shrink-0">✗</span>
+        <span className="text-[#4A6355] shrink-0">✗</span>
       )}
-      <span className={included ? 'text-zinc-200' : 'text-zinc-600'}>{text}</span>
+      <span className={included ? 'text-[#F0EBDB]' : 'text-[#6D7A72]'}>{text}</span>
     </li>
   )
 }

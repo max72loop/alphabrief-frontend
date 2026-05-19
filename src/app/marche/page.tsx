@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import AppNav from '@/components/AppNav'
 
-// ── Types ──────────────────────────────────────────────────────────────────────
 type Phase = 'expansion' | 'slowdown' | 'recession' | 'recovery'
 
 const PHASE_LABELS: Record<Phase, string> = {
@@ -14,29 +13,28 @@ const PHASE_LABELS: Record<Phase, string> = {
 }
 
 const PHASE_COLORS: Record<Phase, string> = {
-  expansion: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
-  slowdown:  'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  recession: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
-  recovery:  'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  expansion: 'bg-[#7EE5A3]/15 text-[#7EE5A3] border-[#7EE5A3]/30',
+  slowdown:  'bg-[#E5A04E]/15 text-[#E5A04E] border-[#E5A04E]/30',
+  recession: 'bg-[#D85F66]/15 text-[#D85F66] border-[#D85F66]/30',
+  recovery:  'bg-[#5AB983]/15 text-[#5AB983] border-[#5AB983]/30',
 }
 
 const SCORE_META: Record<number, { label: string; cls: string }> = {
-  5: { label: 'ACHETER FORT',   cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' },
-  4: { label: 'ACHETER',        cls: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40' },
-  3: { label: 'NEUTRE',         cls: 'bg-amber-500/20 text-amber-400 border-amber-500/40' },
-  2: { label: 'SOUS-PONDÉRER', cls: 'bg-orange-500/20 text-orange-400 border-orange-500/40' },
-  1: { label: 'ÉVITER',         cls: 'bg-rose-500/20 text-rose-400 border-rose-500/40' },
+  5: { label: 'ACHETER FORT',  cls: 'bg-[#7EE5A3]/20 text-[#7EE5A3] border-[#7EE5A3]/40' },
+  4: { label: 'ACHETER',       cls: 'bg-[#5AB983]/20 text-[#5AB983] border-[#5AB983]/40' },
+  3: { label: 'NEUTRE',        cls: 'bg-[#E5A04E]/20 text-[#E5A04E] border-[#E5A04E]/40' },
+  2: { label: 'SOUS-PONDÉRER', cls: 'bg-[#E58A4E]/20 text-[#E58A4E] border-[#E58A4E]/40' },
+  1: { label: 'ÉVITER',        cls: 'bg-[#D85F66]/20 text-[#D85F66] border-[#D85F66]/40' },
 }
 
 const SCORE_BORDER: Record<number, string> = {
-  5: 'border-l-emerald-500',
-  4: 'border-l-indigo-500',
-  3: 'border-l-amber-500',
-  2: 'border-l-orange-500',
-  1: 'border-l-rose-500',
+  5: 'border-l-[#7EE5A3]',
+  4: 'border-l-[#5AB983]',
+  3: 'border-l-[#E5A04E]',
+  2: 'border-l-[#E58A4E]',
+  1: 'border-l-[#D85F66]',
 }
 
-// Sector → asset class id
 const SECTOR_TO_ASSET: Record<string, string> = {
   'Technology':             'tech',
   'Communication Services': 'tech',
@@ -158,32 +156,30 @@ const ASSET_CLASSES: AssetClass[] = [
   },
 ]
 
-// ── Stars helper ───────────────────────────────────────────────────────────────
+const mono = 'var(--font-jetbrains-mono, monospace)'
+
 function Stars({ score, size = 'sm' }: { score: number; size?: 'sm' | 'lg' }) {
   const s = size === 'lg' ? 'text-base' : 'text-[0.7rem]'
   return (
     <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map(i => (
-        <span key={i} className={`${s} ${i <= score ? 'text-amber-400' : 'text-white/10'}`}>★</span>
+        <span key={i} className={`${s} ${i <= score ? 'text-[#E5A04E]' : 'text-[#1A2520]'}`}>★</span>
       ))}
     </div>
   )
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────────
 export default async function MarchePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Current phase — hardcoded for now, can be made dynamic via a Supabase config table
   const phase: Phase = 'expansion'
 
-  // User's watchlist tickers + their sectors from ticker_scores
   const { data: wl } = await supabase
     .from('watchlists').select('id').eq('user_id', user.id).maybeSingle()
 
-  let watchlistByClass: Record<string, string[]> = {}
+  const watchlistByClass: Record<string, string[]> = {}
   if (wl) {
     const { data: items } = await supabase
       .from('watchlist_tickers').select('ticker').eq('watchlist_id', wl.id)
@@ -194,7 +190,7 @@ export default async function MarchePage() {
         .from('ticker_scores').select('ticker,sector').in('ticker', tickers)
       for (const s of scores ?? []) {
         const t = s.ticker as string
-        let assetId = CRYPTO_TICKERS.has(t) ? 'bitcoin' : SECTOR_TO_ASSET[s.sector ?? ''] ?? ''
+        const assetId = CRYPTO_TICKERS.has(t) ? 'bitcoin' : SECTOR_TO_ASSET[s.sector ?? ''] ?? ''
         if (assetId) {
           watchlistByClass[assetId] = [...(watchlistByClass[assetId] ?? []), t]
         }
@@ -202,7 +198,6 @@ export default async function MarchePage() {
     }
   }
 
-  // Score each asset class for the current phase, sort by score
   const scored = ASSET_CLASSES
     .map(a => ({
       ...a,
@@ -218,50 +213,72 @@ export default async function MarchePage() {
 
   const tagCls = (score: number) =>
     score >= 4
-      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+      ? 'bg-[#7EE5A3]/15 text-[#7EE5A3] border border-[#7EE5A3]/30'
       : score === 3
-        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-        : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+        ? 'bg-[#E5A04E]/15 text-[#E5A04E] border border-[#E5A04E]/30'
+        : 'bg-[#D85F66]/15 text-[#D85F66] border border-[#D85F66]/30'
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] text-white">
+    <div className="min-h-screen bg-[#0A0F0C] text-[#F0EBDB]">
       <AppNav activePath="/marche" />
-      <main className="max-w-4xl mx-auto px-6 py-10">
+      <main className="max-w-4xl mx-auto px-6 py-12">
 
         {/* Header */}
-        <div className="flex flex-wrap items-center gap-3 mb-6">
-          <h1 className="text-xl font-bold">Marché Global</h1>
-          <span className="text-xs text-zinc-500">{currentMonth}</span>
-          <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${PHASE_COLORS[phase]}`}>
-            {PHASE_LABELS[phase]}
-          </span>
-          <span className="text-[0.65rem] text-zinc-600 bg-white/[0.03] border border-white/[0.06] px-2 py-0.5 rounded">
-            Phase manuelle — automatisation prévue
-          </span>
+        <div className="mb-10">
+          <p className="text-[10px] uppercase tracking-[0.22em] text-[#7EE5A3] mb-3" style={{ fontFamily: mono }}>
+            § MARCHÉ GLOBAL
+          </p>
+          <div className="flex items-baseline gap-4 flex-wrap">
+            <h1 className="text-3xl"
+              style={{ fontFamily: 'var(--font-fraunces, serif)', fontWeight: 500, letterSpacing: '-0.02em' }}>
+              Cycle <span style={{ fontStyle: 'italic', color: '#7EE5A3' }}>en {PHASE_LABELS[phase].toLowerCase()}</span>.
+            </h1>
+            <span className="text-[10px] uppercase tracking-[0.18em] text-[#6D7A72]" style={{ fontFamily: mono }}>
+              {currentMonth}
+            </span>
+            <span className={`text-[10px] uppercase tracking-[0.16em] font-bold px-2.5 py-1 rounded-full border ${PHASE_COLORS[phase]}`}
+              style={{ fontFamily: mono }}>
+              {PHASE_LABELS[phase]}
+            </span>
+          </div>
+          <p className="text-[10px] text-[#4A6355] uppercase tracking-[0.14em] mt-3" style={{ fontFamily: mono }}>
+            PHASE MANUELLE · AUTOMATISATION PRÉVUE
+          </p>
         </div>
 
         {/* Top pick */}
         {top && (
-          <div className={`bg-white/[0.02] border border-white/[0.06] border-l-4 ${SCORE_BORDER[top.score]} rounded-xl p-5 mb-6`}>
-            <p className="text-[0.65rem] font-bold uppercase tracking-widest text-zinc-500 mb-3">Achat principal du mois</p>
+          <div className={`bg-[#0E1511] border border-[#1A2520] border-l-4 ${SCORE_BORDER[top.score]} rounded-xl p-5 mb-6`}>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-[#7EE5A3] mb-3" style={{ fontFamily: mono }}>
+              Achat principal du mois
+            </p>
             <div className="flex items-start gap-4 flex-wrap">
               <span className="text-3xl leading-none flex-shrink-0 mt-0.5">{top.icon}</span>
               <div className="flex-1 min-w-[160px]">
-                <p className="text-lg font-bold">{top.name}</p>
-                <p className="text-sm text-zinc-500 mb-2">{top.subtitle}</p>
+                <p className="text-lg font-bold text-[#F0EBDB]"
+                  style={{ fontFamily: 'var(--font-fraunces, serif)', fontWeight: 500 }}>
+                  {top.name}
+                </p>
+                <p className="text-sm text-[#6D7A72] mb-2">{top.subtitle}</p>
                 <Stars score={top.score} size="lg" />
-                <span className={`inline-block mt-2 text-[0.65rem] font-bold uppercase tracking-wide px-2.5 py-1 rounded border ${top.meta.cls}`}>
+                <span className={`inline-block mt-2 text-[10px] font-bold uppercase tracking-[0.16em] px-2.5 py-1 rounded border ${top.meta.cls}`}
+                  style={{ fontFamily: mono }}>
                   {top.meta.label}
                 </span>
               </div>
-              <span className="text-xs text-zinc-600 font-mono">{top.proxyTicker}</span>
+              <span className="text-[10px] text-[#4A6355] uppercase tracking-[0.14em]" style={{ fontFamily: mono }}>
+                {top.proxyTicker}
+              </span>
             </div>
-            <p className="text-sm text-zinc-400 mt-4 pt-4 border-t border-white/[0.06] leading-relaxed">{top.reason}</p>
+            <p className="text-sm text-[#C6C0A9] mt-4 pt-4 border-t border-[#1A2520] leading-relaxed">{top.reason}</p>
             {top.watchlistTickers.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-3 items-center">
-                <span className="text-[0.65rem] text-zinc-500">Dans votre suivi :</span>
+                <span className="text-[10px] text-[#6D7A72] uppercase tracking-[0.14em]" style={{ fontFamily: mono }}>
+                  Dans votre suivi :
+                </span>
                 {top.watchlistTickers.map(t => (
-                  <Link key={t} href={`/ticker/${t}`} className={`text-[0.65rem] font-bold px-2 py-0.5 rounded ${tagCls(top.score)}`}>
+                  <Link key={t} href={`/ticker/${t}`} className={`text-[10px] font-bold px-2 py-0.5 rounded ${tagCls(top.score)}`}
+                    style={{ fontFamily: mono }}>
                     {t}
                   </Link>
                 ))}
@@ -271,37 +288,42 @@ export default async function MarchePage() {
         )}
 
         {/* All asset classes */}
-        <p className="text-[0.65rem] font-bold uppercase tracking-widest text-zinc-500 mb-3">
-          Toutes les classes d'actifs — classées par score
+        <p className="text-[10px] uppercase tracking-[0.22em] text-[#6D7A72] mb-3" style={{ fontFamily: mono }}>
+          Toutes les classes d&apos;actifs — classées par score
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {scored.map(asset => (
             <div
               key={asset.id}
-              className={`bg-white/[0.02] border border-white/[0.06] border-l-4 ${SCORE_BORDER[asset.score]} rounded-xl p-4 flex flex-col gap-2`}
+              className={`bg-[#0E1511] border border-[#1A2520] border-l-4 ${SCORE_BORDER[asset.score]} rounded-xl p-4 flex flex-col gap-2`}
             >
               <div className="flex items-start gap-2">
                 <span className="text-xl leading-none flex-shrink-0 mt-0.5">{asset.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold leading-tight">{asset.name}</p>
-                  <p className="text-[0.65rem] text-zinc-500 mt-0.5">{asset.subtitle}</p>
+                  <p className="text-sm font-bold leading-tight text-[#F0EBDB]"
+                    style={{ fontFamily: 'var(--font-fraunces, serif)', fontWeight: 500 }}>
+                    {asset.name}
+                  </p>
+                  <p className="text-[10px] text-[#6D7A72] mt-0.5">{asset.subtitle}</p>
                 </div>
               </div>
 
               <Stars score={asset.score} />
 
-              <span className={`self-start text-[0.6rem] font-bold uppercase tracking-wide px-2 py-0.5 rounded border ${asset.meta.cls}`}>
+              <span className={`self-start text-[9px] font-bold uppercase tracking-[0.16em] px-2 py-0.5 rounded border ${asset.meta.cls}`}
+                style={{ fontFamily: mono }}>
                 {asset.meta.label}
               </span>
 
-              <p className="text-[0.72rem] text-zinc-500 leading-relaxed border-t border-white/[0.06] pt-2 flex-1">
+              <p className="text-[12px] text-[#C6C0A9] leading-relaxed border-t border-[#1A2520] pt-2 flex-1">
                 {asset.reason}
               </p>
 
               {asset.watchlistTickers.length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-1">
                   {asset.watchlistTickers.map(t => (
-                    <Link key={t} href={`/ticker/${t}`} className={`text-[0.6rem] font-bold px-1.5 py-0.5 rounded ${tagCls(asset.score)}`}>
+                    <Link key={t} href={`/ticker/${t}`} className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${tagCls(asset.score)}`}
+                      style={{ fontFamily: mono }}>
                       {t}
                     </Link>
                   ))}
@@ -312,13 +334,13 @@ export default async function MarchePage() {
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-2 mt-8 pt-5 border-t border-white/[0.06] text-[0.65rem] text-zinc-600">
+        <div className="flex flex-wrap gap-2 mt-8 pt-5 border-t border-[#1A2520] text-[10px] text-[#4A6355]" style={{ fontFamily: mono }}>
           {[5, 4, 3, 2, 1].map(s => (
             <span key={s} className={`px-2 py-0.5 rounded border ${SCORE_META[s].cls}`}>
               {'★'.repeat(s)}{'☆'.repeat(5 - s)} {SCORE_META[s].label}
             </span>
           ))}
-          <span className="ml-auto">Source : analyse cycle économique S&P 500</span>
+          <span className="ml-auto uppercase tracking-[0.14em]">Source : analyse cycle économique S&P 500</span>
         </div>
       </main>
     </div>
