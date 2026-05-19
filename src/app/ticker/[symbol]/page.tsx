@@ -5,6 +5,7 @@ import AppNav from '@/components/AppNav'
 import WatchlistButton from '@/app/dashboard/WatchlistButton'
 import { Gauge, C, serif, sans, mono } from '@/components/landing/Gauge'
 import { TickerTape } from '@/components/landing/TickerTape'
+import { FREE_DAILY_QUOTA } from '@/lib/quota'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -203,7 +204,7 @@ function TeaserBlock({ ticker, row }: { ticker: string; row: TickerScore }) {
 
 // ── Paywall ──────────────────────────────────────────────────────────────────
 
-const DAILY_LIMIT = 5
+const DAILY_LIMIT = FREE_DAILY_QUOTA
 const LEMON_URL = process.env.NEXT_PUBLIC_LEMON_CHECKOUT_URL || '/pricing'
 
 function PaywallBlock({

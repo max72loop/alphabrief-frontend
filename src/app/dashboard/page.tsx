@@ -8,9 +8,9 @@ import DashboardWatchlist, { type WatchRow } from './_components/DashboardWatchl
 import QuickScorer, { type RecentItem, type Suggestion } from './_components/QuickScorer'
 import AlertsAndQuota, { type AlertItem, type Quota } from './_components/AlertsAndQuota'
 import { TickerTape } from '@/components/landing/TickerTape'
+import { FREE_DAILY_QUOTA } from '@/lib/quota'
 
 const GUEST_LIMIT = 20
-const FREE_DAILY_QUOTA = 5
 
 function firstNameFrom(user: { user_metadata?: { full_name?: string; first_name?: string; name?: string }; email?: string }): string {
   const meta = user.user_metadata ?? {}

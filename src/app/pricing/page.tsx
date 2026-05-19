@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 
-const LEMON_CHECKOUT_URL = process.env.NEXT_PUBLIC_LEMON_CHECKOUT_URL || '#'
+const LEMON_CHECKOUT_URL = process.env.NEXT_PUBLIC_LEMON_CHECKOUT_URL ?? ''
 
 export default async function PricingPage() {
   const supabase = await createClient()
@@ -16,6 +16,12 @@ export default async function PricingPage() {
       .single()
     isPremium = (profile?.plan ?? '').toLowerCase() === 'premium'
   }
+
+  const checkoutUrl = LEMON_CHECKOUT_URL
+    ? (user
+        ? `${LEMON_CHECKOUT_URL}?checkout[email]=${encodeURIComponent(user.email ?? '')}&checkout[custom][user_id]=${user.id}`
+        : LEMON_CHECKOUT_URL)
+    : null
 
   return (
     <div className="min-h-screen bg-[#0f0f1a] text-white">
@@ -102,13 +108,17 @@ export default async function PricingPage() {
               <div className="text-center text-sm text-indigo-300 py-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10">
                 Votre plan actuel ✓
               </div>
-            ) : (
+            ) : checkoutUrl ? (
               <a
-                href={user ? `${LEMON_CHECKOUT_URL}?checkout[email]=${encodeURIComponent(user.email ?? '')}&checkout[custom][user_id]=${user.id}` : LEMON_CHECKOUT_URL}
+                href={checkoutUrl}
                 className="block text-center py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition-colors text-sm font-bold text-white shadow-lg shadow-indigo-500/20"
               >
                 {user ? 'Passer à Premium' : 'Démarrer l\'essai'}
               </a>
+            ) : (
+              <div className="text-center text-sm text-zinc-500 py-3 rounded-xl border border-amber-500/30 bg-amber-500/5">
+                Checkout temporairement indisponible
+              </div>
             )}
           </div>
         </div>

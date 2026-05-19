@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import ProfilPanel from './ProfilPanel'
 import NavSearchBox from './NavSearchBox'
+import { FREE_DAILY_QUOTA } from '@/lib/quota'
 
 async function getUnreadCount() {
   try {
@@ -35,11 +36,11 @@ async function getAnalysesInfo(userId: string): Promise<{ isPremium: boolean; re
       .select('plan, analyses_today, last_analysis_date')
       .eq('id', userId)
       .maybeSingle()
-    if (!data) return { isPremium: false, remaining: 5 }
+    if (!data) return { isPremium: false, remaining: FREE_DAILY_QUOTA }
     if ((data.plan ?? '').toLowerCase() === 'premium') return { isPremium: true, remaining: null }
     const today = new Date().toISOString().slice(0, 10)
     const usedToday = data.last_analysis_date === today ? (data.analyses_today ?? 0) : 0
-    return { isPremium: false, remaining: Math.max(0, 5 - usedToday) }
+    return { isPremium: false, remaining: Math.max(0, FREE_DAILY_QUOTA - usedToday) }
   } catch { return { isPremium: false, remaining: null } }
 }
 
@@ -113,7 +114,7 @@ export default async function AppNav({ activePath }: { activePath?: string }) {
                   ? 'border-[#E5A04E]/40 bg-[#E5A04E]/10 text-[#E5A04E] hover:bg-[#E5A04E]/20'
                   : 'border-[#1A2520] bg-[#0F1A13] text-[#4A6355] hover:text-[#F0EBDB]'
                 }`}>
-              <span className="tabular-nums">{analysesInfo.remaining}/5</span>
+              <span className="tabular-nums">{analysesInfo.remaining}/{FREE_DAILY_QUOTA}</span>
               <span className="text-[0.6rem] uppercase tracking-wide">analyses</span>
             </Link>
           )}
