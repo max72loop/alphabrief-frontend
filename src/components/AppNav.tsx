@@ -84,8 +84,9 @@ export default async function AppNav({ activePath }: { activePath?: string }) {
         {/* Cmd+K search */}
         {user && <NavSearchBox />}
 
-        {/* Nav links — édition / watchlist / historique / alertes */}
+        {/* Nav principale — primary (visible) + secondary (outils) */}
         <div className="flex items-center gap-5 ml-6 flex-1 min-w-0">
+          {/* Primary */}
           {navLink('/dashboard', 'Édition', ['/dashboard', '/ticker'])}
           {navLink('/watchlist', 'Watchlist')}
           {navLink('/historique', 'Historique')}
@@ -102,6 +103,15 @@ export default async function AppNav({ activePath }: { activePath?: string }) {
               </span>
             )}
           </Link>
+
+          {/* Séparateur + outils secondaires (cachés < lg pour respecter la respiration mobile) */}
+          <span className="hidden lg:inline-block w-px h-4 bg-[#1A2520] mx-2" aria-hidden="true" />
+          <div className="hidden lg:flex items-center gap-5">
+            {navLink('/compare',   'Comparer')}
+            {navLink('/portfolio', 'Portfolio')}
+            {navLink('/marche',    'Marché')}
+            {navLink('/methode',   'Méthode')}
+          </div>
         </div>
 
         {/* Right */}

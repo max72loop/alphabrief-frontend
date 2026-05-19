@@ -13,9 +13,12 @@ export function Hero() {
 
   const submitTicker = (e: FormEvent) => {
     e.preventDefault();
-    const t = query.trim().toUpperCase();
+    const t = query.trim();
     if (!t) return;
-    router.push(`/ticker/${encodeURIComponent(t)}`);
+    // Passe par /search qui accepte ticker exact OU nom d'entreprise et
+    // redirige proprement. Avant on faisait router.push(/ticker/{T}) qui
+    // 404ait dès que l'utilisateur tapait "Tesla" au lieu de "TSLA".
+    router.push(`/search?q=${encodeURIComponent(t)}`);
   };
 
   useEffect(() => {

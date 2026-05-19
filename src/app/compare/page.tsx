@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -231,9 +232,9 @@ export default async function ComparePage({
               </thead>
               <tbody>
                 {compRows.map((row, i) => (
-                  <>
+                  <Fragment key={row.label}>
                     {row.section && (
-                      <tr key={`sec-${i}`} className="bg-[#13201A]/50 border-t border-[#1A2520]">
+                      <tr className="bg-[#13201A]/50 border-t border-[#1A2520]">
                         <td colSpan={3} className="px-5 py-2 text-[10px] uppercase tracking-[0.2em] text-[#7EE5A3]"
                           style={{ fontFamily: mono }}>
                           § {row.section}
@@ -241,7 +242,6 @@ export default async function ComparePage({
                       </tr>
                     )}
                     <tr
-                      key={row.label}
                       className={`border-t border-[#1A2520]/60 transition-colors ${
                         row.winA ? 'bg-[#7EE5A3]/[0.04]' : row.winB ? 'bg-[#7EE5A3]/[0.04]' : ''
                       }`}
@@ -260,7 +260,7 @@ export default async function ComparePage({
                         {row.winB && <span className="ml-1.5 text-[#7EE5A3] text-xs">+</span>}
                       </td>
                     </tr>
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
