@@ -86,6 +86,11 @@ type PeerRow = Pick<TickerScore,
   | 'score_technicals' | 'score_momentum' | 'market_cap' | 'sector'> & {
   financials: Pick<Financials, 'pe_ttm' | 'revenue_cagr_3y'> | null
 }
+type TickerEvent = {
+  event_date: string  // 'YYYY-MM-DD'
+  label: string
+  kind: 'earnings' | 'dividend' | 'split' | 'manual' | string
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -132,11 +137,6 @@ function verdictFor(score: number): string {
   if (score >= 45) return 'Pas de signal'
   if (score >= 30) return 'Vent contraire'
   return 'À éviter'
-}
-function dateFmt(iso: string): string {
-  const d = new Date(iso)
-  const months = ['JANV.', 'FÉV.', 'MARS', 'AVR.', 'MAI', 'JUIN', 'JUIL.', 'AOÛT', 'SEPT.', 'OCT.', 'NOV.', 'DÉC.']
-  return `${d.getDate().toString().padStart(2, '0')} ${months[d.getMonth()]}`
 }
 function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime()
@@ -801,8 +801,8 @@ function PillarsDeepDive({ row }: { row: TickerScore }) {
 
 // ── §3 ScoreHistory — chart with real score_history data ─────────────────────
 
-function ScoreHistorySection({ history, currentScore }: {
-  history: ScoreHistory[]; currentScore: number
+function ScoreHistorySection({ history, currentScore, events }: {
+  history: ScoreHistory[]; currentScore: number; events: TickerEvent[]
 }) {
   if (history.length < 2) {
     return (
@@ -860,7 +860,7 @@ function ScoreHistorySection({ history, currentScore }: {
         </div>
       </div>
 
-      <ScoreHistoryChart history={points} currentScore={currentScore} />
+      <ScoreHistoryChart history={points} currentScore={currentScore} events={events} />
     </section>
   )
 }
@@ -1007,28 +1007,25 @@ function PeersComparison({ row, peers }: { row: TickerScore; peers: PeerRow[] })
 
 // ── §5 EventsTimeline — derived from score_history big moves ─────────────────
 
-type DerivedEvent = { iso: string; score: number; prev: number; delta: number }
-
-function deriveEvents(history: ScoreHistory[]): DerivedEvent[] {
-  if (history.length < 2) return []
-  const events: DerivedEvent[] = []
-  for (let i = 1; i < history.length; i++) {
-    const delta = history[i].score - history[i - 1].score
-    if (Math.abs(delta) >= 3) {
-      events.push({
-        iso: history[i].scored_at,
-        score: history[i].score,
-        prev: history[i - 1].score,
-        delta,
-      })
-    }
-  }
-  // Most recent first, max 5
-  return events.reverse().slice(0, 5)
+function shortDate(iso: string): { day: string; month: string } {
+  const d = new Date(iso)
+  const months = ['JANV.', 'FÉV.', 'MARS', 'AVR.', 'MAI', 'JUIN', 'JUIL.', 'AOÛT', 'SEPT.', 'OCT.', 'NOV.', 'DÉC.']
+  return { day: d.getDate().toString().padStart(2, '0'), month: months[d.getMonth()] }
 }
 
-function EventsTimeline({ ticker, history }: { ticker: string; history: ScoreHistory[] }) {
-  const events = deriveEvents(history)
+function EventsTimeline({ ticker, events }: { ticker: string; history: ScoreHistory[]; events: TickerEvent[] }) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayTs = today.getTime()
+
+  const sorted = [...events].sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())
+  const past = sorted
+    .filter(e => new Date(e.event_date).getTime() < todayTs)
+    .slice(-5)
+    .reverse()
+  const future = sorted
+    .filter(e => new Date(e.event_date).getTime() >= todayTs)
+    .slice(0, 5)
 
   return (
     <section id="events" style={{ padding: '40px 40px 60px', maxWidth: 1320, margin: '0 auto' }}>
@@ -1045,95 +1042,113 @@ function EventsTimeline({ ticker, history }: { ticker: string; history: ScoreHis
             fontFamily: serif, fontSize: 38, fontWeight: 500,
             letterSpacing: '-0.025em', color: C.ink, margin: 0, lineHeight: 1,
           }}>
-            {events.length > 0
-              ? <>{events.length} événement{events.length > 1 ? 's' : ''} derrière, <span style={{ fontStyle: 'italic', color: C.phosphor }}>la suite à venir</span>.</>
-              : <>Un score <span style={{ fontStyle: 'italic', color: C.phosphor }}>stable</span>.</>
+            {past.length > 0 || future.length > 0
+              ? <>{past.length} événement{past.length > 1 ? 's' : ''} derrière, <span style={{ fontStyle: 'italic', color: C.phosphor }}>{future.length} devant</span>.</>
+              : <>Calendrier <span style={{ fontStyle: 'italic', color: C.phosphor }}>vide</span>.</>
             }
           </h2>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 40, paddingTop: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, paddingTop: 32 }}>
+        {/* PASSÉ */}
         <div>
           <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.22em', marginBottom: 14 }}>
-            HISTORIQUE RÉCENT
+            DERRIÈRE NOUS
           </div>
-          {events.length === 0 ? (
-            <p style={{ fontFamily: serif, fontStyle: 'italic', fontSize: 16, color: C.inkDim, lineHeight: 1.5 }}>
-              Pas encore de variation supérieure à 3 points sur la fenêtre d&apos;observation. Le titre traverse une phase calme — utile à savoir, peu d&apos;urgence.
+          {past.length === 0 ? (
+            <p style={{ fontFamily: serif, fontStyle: 'italic', fontSize: 15, color: C.inkDim, lineHeight: 1.5 }}>
+              Aucun événement archivé pour ce ticker.
             </p>
           ) : (
-            <div style={{ position: 'relative', paddingLeft: 24 }}>
-              <div style={{
-                position: 'absolute', left: 6, top: 4, bottom: 4, width: 1,
-                background: `linear-gradient(to bottom, ${C.phosphor}, ${C.rule})`,
-              }} />
-              {events.map((e, i) => {
-                const up = e.delta > 0
-                const tone = up ? C.phosphor : C.sanguine
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {past.map((e, i) => {
+                const d = shortDate(e.event_date)
                 return (
-                  <div key={i} style={{
-                    position: 'relative',
-                    paddingBottom: i === events.length - 1 ? 0 : 22,
+                  <li key={i} style={{
+                    display: 'flex', gap: 14, alignItems: 'center',
+                    padding: '12px 14px',
+                    background: C.bgCard, border: `1px solid ${C.rule}`, borderRadius: 10,
                   }}>
-                    <span style={{
-                      position: 'absolute', left: -22, top: 4,
-                      width: 13, height: 13, borderRadius: '50%',
-                      background: C.bg, border: `2px solid ${tone}`,
-                      boxShadow: i === 0 ? `0 0 10px ${tone}80` : 'none',
-                    }} />
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
-                      <span style={{ fontFamily: mono, fontSize: 11, color: C.ink, fontWeight: 600, letterSpacing: '0.08em' }}>
-                        {dateFmt(e.iso)}
-                      </span>
-                      <span style={{ fontFamily: mono, fontSize: 9, color: tone, letterSpacing: '0.18em', fontWeight: 600 }}>
-                        {up ? 'HAUSSE' : 'BAISSE'}
-                      </span>
-                      <span style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.1em', marginLeft: 'auto' }}>
-                        {timeAgo(e.iso).toUpperCase()}
-                      </span>
+                    <div style={{
+                      flexShrink: 0, width: 52, textAlign: 'center',
+                      padding: '4px 0', border: `1px solid ${C.rule}`, borderRadius: 6, background: C.bg,
+                    }}>
+                      <div style={{ fontFamily: mono, fontSize: 16, fontWeight: 600, color: C.ink, lineHeight: 1 }}>{d.day}</div>
+                      <div style={{ fontFamily: mono, fontSize: 8, color: C.muted, letterSpacing: '0.16em', marginTop: 3 }}>{d.month}</div>
                     </div>
-                    <div style={{ fontFamily: serif, fontSize: 18, fontWeight: 500, color: C.ink, letterSpacing: '-0.01em', marginBottom: 6 }}>
-                      Score recalculé
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: mono, fontSize: 9, color: C.phosphorSoft, letterSpacing: '0.2em', fontWeight: 600, marginBottom: 4 }}>
+                        {e.label}
+                      </div>
+                      <div style={{ fontFamily: sans, fontSize: 12, color: C.inkDim }}>
+                        {timeAgo(e.event_date)}
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                      <span style={{
-                        fontFamily: mono, fontSize: 11, fontWeight: 600,
-                        color: tone,
-                      }}>
-                        {up ? '▲' : '▼'} {Math.abs(e.delta).toFixed(0)} pts ({Math.round(e.prev)} → {Math.round(e.score)})
-                      </span>
-                    </div>
-                  </div>
+                  </li>
                 )
               })}
-            </div>
+            </ul>
           )}
         </div>
 
-        {/* Right column — alert CTA */}
+        {/* FUTUR */}
         <div>
           <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.22em', marginBottom: 14 }}>
-            ALERTES
+            À VENIR
           </div>
+          {future.length === 0 ? (
+            <p style={{ fontFamily: serif, fontStyle: 'italic', fontSize: 15, color: C.inkDim, lineHeight: 1.5 }}>
+              Pas d&apos;événement annoncé. Le calendrier se met à jour chaque nuit.
+            </p>
+          ) : (
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {future.map((e, i) => {
+                const d = shortDate(e.event_date)
+                const days = Math.round((new Date(e.event_date).getTime() - todayTs) / 86_400_000)
+                return (
+                  <li key={i} style={{
+                    display: 'flex', gap: 14, alignItems: 'center',
+                    padding: '12px 14px',
+                    background: `${C.phosphor}06`, border: `1px solid ${C.phosphor}30`, borderRadius: 10,
+                  }}>
+                    <div style={{
+                      flexShrink: 0, width: 52, textAlign: 'center',
+                      padding: '4px 0', border: `1px solid ${C.phosphor}40`, borderRadius: 6, background: C.bg,
+                    }}>
+                      <div style={{ fontFamily: mono, fontSize: 16, fontWeight: 600, color: C.phosphor, lineHeight: 1 }}>{d.day}</div>
+                      <div style={{ fontFamily: mono, fontSize: 8, color: C.phosphor, letterSpacing: '0.16em', marginTop: 3 }}>{d.month}</div>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: mono, fontSize: 9, color: C.phosphor, letterSpacing: '0.2em', fontWeight: 600, marginBottom: 4 }}>
+                        {e.label}
+                      </div>
+                      <div style={{ fontFamily: sans, fontSize: 12, color: C.inkDim }}>
+                        {days === 0 ? "aujourd'hui" : days === 1 ? 'demain' : `dans ${days} jours`}
+                      </div>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+
           <div style={{
-            padding: '20px 22px',
-            background: `${C.phosphor}06`, border: `1px solid ${C.phosphor}30`,
-            borderRadius: 12,
+            marginTop: 20,
+            padding: '14px 18px',
+            background: C.bgCard, border: `1px solid ${C.rule}`,
+            borderRadius: 10,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
           }}>
-            <div style={{ fontFamily: mono, fontSize: 10, color: C.phosphor, letterSpacing: '0.2em', marginBottom: 10 }}>
-              🔔 PROCHAINE PUBLICATION
-            </div>
-            <div style={{ fontFamily: serif, fontSize: 18, color: C.ink, lineHeight: 1.35, fontWeight: 500 }}>
-              Soyez prévenu si le score de <span style={{ color: C.phosphor, fontFamily: mono }}>{ticker}</span> franchit <span style={{ color: C.phosphor, fontFamily: mono }}>80</span> ou passe sous <span style={{ color: C.ember, fontFamily: mono }}>70</span>.
+            <div style={{ fontFamily: serif, fontSize: 13, color: C.inkDim, fontStyle: 'italic', lineHeight: 1.4 }}>
+              Soyez prévenu si le score de <span style={{ color: C.phosphor, fontStyle: 'normal', fontFamily: mono }}>{ticker}</span> passe sous <span style={{ color: C.ember, fontStyle: 'normal', fontFamily: mono }}>70</span>.
             </div>
             <Link href="/alerts" style={{
-              display: 'inline-block', marginTop: 16,
-              padding: '9px 18px', background: C.phosphor, color: C.bg,
-              fontFamily: sans, fontSize: 13, fontWeight: 600,
-              borderRadius: 8, textDecoration: 'none',
+              padding: '8px 14px', background: C.phosphor, color: C.bg,
+              fontFamily: sans, fontSize: 12, fontWeight: 600,
+              borderRadius: 8, textDecoration: 'none', whiteSpace: 'nowrap',
             }}>
-              Configurer une alerte →
+              Configurer →
             </Link>
           </div>
         </div>
@@ -1217,7 +1232,7 @@ export default async function TickerPage({ params }: { params: Promise<{ symbol:
     return <TeaserBlock ticker={ticker} row={row} />
   }
 
-  const [inWatchlistResult, historyResult, profileResult, peersResult] = await Promise.all([
+  const [inWatchlistResult, historyResult, profileResult, peersResult, eventsResult] = await Promise.all([
     (async () => {
       try {
         const { data: wl } = await supabase.from('watchlists').select('id').eq('user_id', user.id).maybeSingle()
@@ -1241,6 +1256,10 @@ export default async function TickerPage({ params }: { params: Promise<{ symbol:
           .order('score_total', { ascending: false })
           .limit(5)
       : Promise.resolve({ data: [] as PeerRow[] }),
+    supabase.from('ticker_events')
+      .select('event_date, label, kind')
+      .eq('ticker', ticker)
+      .order('event_date', { ascending: true }),
   ])
 
   const profile = profileResult.data
@@ -1273,6 +1292,7 @@ export default async function TickerPage({ params }: { params: Promise<{ symbol:
   const inWatchlist = inWatchlistResult
   const history = (historyResult.data ?? []) as ScoreHistory[]
   const peers = (peersResult.data ?? []) as PeerRow[]
+  const events = (eventsResult.data ?? []) as TickerEvent[]
 
   return (
     <div className="min-h-screen" style={{ background: C.bg, color: C.ink }}>
@@ -1283,9 +1303,9 @@ export default async function TickerPage({ params }: { params: Promise<{ symbol:
       <main>
         <DetailsMasthead row={row} ticker={ticker} history={history} />
         <PillarsDeepDive row={row} />
-        <ScoreHistorySection history={history} currentScore={row.score_total} />
+        <ScoreHistorySection history={history} currentScore={row.score_total} events={events} />
         <PeersComparison row={row} peers={peers} />
-        <EventsTimeline ticker={ticker} history={history} />
+        <EventsTimeline ticker={ticker} history={history} events={events} />
         <NextRead peers={peers} />
 
         <footer style={{

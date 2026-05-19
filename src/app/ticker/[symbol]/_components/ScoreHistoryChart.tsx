@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { C, serif, sans, mono } from '@/components/landing/Gauge'
 
 export type HistoryPoint = { score: number; iso: string }
+export type ChartEvent = { event_date: string; label: string; kind: string }
 
 type Range = '1M' | '3M' | '6M' | '1Y' | '3Y'
 const RANGES: Range[] = ['1M', '3M', '6M', '1Y', '3Y']
@@ -35,34 +36,65 @@ function pickDefaultRange(history: HistoryPoint[]): Range {
   return '3Y'
 }
 
-type DerivedEvent = { iso: string; score: number; delta: number; label: string }
+type Annot = { x: number; y: number; label: string; tone: string }
 
-function deriveEvents(points: HistoryPoint[]): DerivedEvent[] {
-  if (points.length < 3) return []
-  const events: DerivedEvent[] = []
-  for (let i = 1; i < points.length - 1; i++) {
-    const delta = points[i].score - points[i - 1].score
-    if (Math.abs(delta) < 4) continue
-    events.push({
-      iso: points[i].iso,
-      score: points[i].score,
-      delta,
-      label: delta > 0 ? `+${Math.round(delta)} PTS` : `${Math.round(delta)} PTS`,
-    })
+/**
+ * Pour chaque event passé tombant dans la fenêtre temporelle visible, trouve
+ * le point d'historique le plus proche et renvoie ses coordonnées + label.
+ */
+function buildAnnotations(
+  series: HistoryPoint[],
+  events: ChartEvent[],
+  ix: (i: number) => number,
+  iy: (s: number) => number,
+  maxAnnots = 4,
+): Annot[] {
+  if (series.length < 2 || events.length === 0) return []
+  const first = new Date(series[0].iso).getTime()
+  const last = new Date(series[series.length - 1].iso).getTime()
+  const indexByTime = (t: number) => {
+    let best = 0
+    let bestDist = Infinity
+    for (let i = 0; i < series.length; i++) {
+      const d = Math.abs(new Date(series[i].iso).getTime() - t)
+      if (d < bestDist) { bestDist = d; best = i }
+    }
+    return best
   }
-  // Garde au plus 4 événements bien espacés
-  return events
-    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
-    .slice(0, 4)
-    .sort((a, b) => new Date(a.iso).getTime() - new Date(b.iso).getTime())
+
+  const visible = events
+    .map(ev => ({ ...ev, t: new Date(ev.event_date).getTime() }))
+    .filter(ev => ev.t >= first && ev.t <= last)
+    .sort((a, b) => a.t - b.t)
+
+  // Espace les annotations pour éviter le chevauchement (≥ ~10% de la largeur)
+  const picked: typeof visible = []
+  for (const ev of visible) {
+    if (picked.length === 0 || (ev.t - picked[picked.length - 1].t) > (last - first) / Math.max(1, maxAnnots)) {
+      picked.push(ev)
+    }
+    if (picked.length >= maxAnnots) break
+  }
+
+  return picked.map(ev => {
+    const idx = indexByTime(ev.t)
+    return {
+      x: ix(idx),
+      y: iy(series[idx].score),
+      label: ev.label.toUpperCase(),
+      tone: ev.kind === 'dividend' ? C.phosphorSoft : C.phosphor,
+    }
+  })
 }
 
 export default function ScoreHistoryChart({
   history,
   currentScore,
+  events = [],
 }: {
   history: HistoryPoint[]
   currentScore: number
+  events?: ChartEvent[]
 }) {
   const [range, setRange] = useState<Range>(() => pickDefaultRange(history))
 
@@ -77,8 +109,6 @@ export default function ScoreHistoryChart({
     if (filtered.length === 0) return []
     return [...filtered.slice(0, -1), { score: currentScore, iso: filtered[filtered.length - 1].iso }]
   }, [filtered, currentScore])
-
-  const events = useMemo(() => deriveEvents(seriesWithCurrent), [seriesWithCurrent])
 
   const onExportCsv = () => {
     if (typeof window === 'undefined') return
@@ -123,7 +153,7 @@ export default function ScoreHistoryChart({
   const lastScore = Math.round(seriesWithCurrent[seriesWithCurrent.length - 1].score)
   const lineColor = toneFor(lastScore)
 
-  const indexByIso = new Map(seriesWithCurrent.map((p, i) => [p.iso, i]))
+  const annotations = buildAnnotations(seriesWithCurrent, events, ix, iy)
 
   // Étiquettes X : début, milieu, fin
   const xTicks = [0, Math.floor((seriesWithCurrent.length - 1) / 2), seriesWithCurrent.length - 1]
@@ -203,23 +233,19 @@ export default function ScoreHistoryChart({
           <path d={area} fill="url(#score-area-c)" />
           <path d={path} fill="none" stroke={lineColor} strokeWidth="2" strokeLinecap="round" />
 
-          {/* Annotations événements */}
-          {events.map((ev, k) => {
-            const idx = indexByIso.get(ev.iso)
-            if (idx === undefined) return null
-            const x = ix(idx)
-            const y = iy(ev.score)
-            const labelY = y - 24
-            const c = ev.delta > 0 ? C.phosphor : C.sanguine
+          {/* Annotations événements (earnings, dividend, ...) */}
+          {annotations.map((a, k) => {
+            const labelY = a.y - 26
+            const w = Math.max(76, a.label.length * 7 + 14)
             return (
               <g key={k}>
-                <line x1={x} y1={y} x2={x} y2={labelY + 6} stroke={c} strokeDasharray="2 3" strokeWidth={1} />
-                <circle cx={x} cy={y} r="4" fill={C.bg} stroke={c} strokeWidth="2" />
-                <rect x={x - 38} y={labelY - 10} width="76" height="16" rx="3"
-                  fill={C.bg} stroke={c} strokeWidth="1" />
-                <text x={x} y={labelY + 1} textAnchor="middle"
-                  style={{ fontFamily: mono, fontSize: 9, fill: c, letterSpacing: '0.14em', fontWeight: 600 }}>
-                  {ev.label}
+                <line x1={a.x} y1={a.y} x2={a.x} y2={labelY + 6} stroke={a.tone} strokeDasharray="2 3" strokeWidth={1} />
+                <circle cx={a.x} cy={a.y} r="4" fill={C.bg} stroke={a.tone} strokeWidth="2" />
+                <rect x={a.x - w / 2} y={labelY - 10} width={w} height="16" rx="3"
+                  fill={C.bg} stroke={a.tone} strokeWidth="1" />
+                <text x={a.x} y={labelY + 1} textAnchor="middle"
+                  style={{ fontFamily: mono, fontSize: 9, fill: a.tone, letterSpacing: '0.14em', fontWeight: 600 }}>
+                  {a.label}
                 </text>
               </g>
             )
