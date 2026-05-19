@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import AppNav from '@/components/AppNav'
 import WatchlistButton from '@/app/dashboard/WatchlistButton'
+import { Gauge, C, serif, sans, mono } from '@/components/landing/Gauge'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -75,711 +76,123 @@ type TickerScore = {
 }
 
 type ScoreHistory = { score: number; confidence: number; scored_at: string }
+type PeerRow = Pick<TickerScore,
+  'ticker' | 'company_name' | 'score_total' | 'score_fundamentals'
+  | 'score_technicals' | 'score_momentum' | 'market_cap' | 'sector'> & {
+  financials: Pick<Financials, 'pe_ttm' | 'revenue_cagr_3y'> | null
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function n(v: number | null | undefined): v is number { return v != null && isFinite(v) }
-
-function fmt(v: number | null | undefined, suffix = '', dec = 1): string {
+function fmtPct(v: number | null | undefined, dec = 1): string {
   if (!n(v)) return '—'
-  return `${v.toFixed(dec)}${suffix}`
+  return `${v.toFixed(dec)}%`
 }
-function fmtSign(v: number | null | undefined, suffix = '', dec = 1): string {
+function fmtSignPct(v: number | null | undefined, dec = 1): string {
   if (!n(v)) return '—'
-  return `${v >= 0 ? '+' : ''}${v.toFixed(dec)}${suffix}`
-}
-function timeAgo(iso: string | null | undefined): { label: string; stale: boolean } {
-  if (!iso) return { label: '—', stale: false }
-  const diffMs = Date.now() - new Date(iso).getTime()
-  const diffH = Math.floor(diffMs / 3_600_000)
-  const stale = diffH > 72
-  if (diffH < 1)  return { label: '< 1h',     stale }
-  if (diffH < 24) return { label: `${diffH}h`, stale }
-  return { label: `${Math.floor(diffH / 24)}j`, stale }
-}
-
-function fmtVol(v: number | null | undefined): string {
-  if (!n(v)) return '—'
-  if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B`
-  if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`
-  if (v >= 1e3) return `${(v / 1e3).toFixed(0)}K`
-  return `${v}`
+  return `${v >= 0 ? '+' : ''}${v.toFixed(dec)}%`
 }
 function fmtCap(v: number | null | undefined): string {
   if (!n(v)) return '—'
-  if (v >= 1e12) return `${(v / 1e12).toFixed(2)}T`
-  if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B`
-  if (v >= 1e6) return `${(v / 1e6).toFixed(0)}M`
+  if (v >= 1e12) return `${(v / 1e12).toFixed(2)} T`
+  if (v >= 1e9) return `${(v / 1e9).toFixed(1)} Mds`
+  if (v >= 1e6) return `${(v / 1e6).toFixed(0)} M`
   return `${v}`
 }
-function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)) }
-
-function scoreColor(s: number) {
-  if (s >= 70) return '#10b981'
-  if (s >= 50) return '#f59e0b'
-  return '#ef4444'
+function fmtVol(v: number | null | undefined): string {
+  if (!n(v)) return '—'
+  if (v >= 1e9) return `${(v / 1e9).toFixed(2)} Md`
+  if (v >= 1e6) return `${(v / 1e6).toFixed(1)} M`
+  if (v >= 1e3) return `${(v / 1e3).toFixed(0)} K`
+  return `${v}`
 }
-function scoreTwColor(s: number) {
-  if (s >= 70) return 'text-emerald-400'
-  if (s >= 50) return 'text-amber-400'
-  return 'text-rose-400'
+function toneFor(score: number): string {
+  if (score >= 75) return C.phosphor
+  if (score >= 60) return C.phosphorSoft
+  if (score >= 45) return C.ember
+  if (score >= 30) return '#E58A4E'
+  return C.sanguine
 }
-function scoreBgBorder(s: number) {
-  if (s >= 70) return 'bg-emerald-500/10 border-emerald-500/20'
-  if (s >= 50) return 'bg-amber-500/10 border-amber-500/20'
-  return 'bg-rose-500/10 border-rose-500/20'
+function bandFor(score: number): string {
+  if (score >= 75) return 'EXCELLENT'
+  if (score >= 60) return 'BON'
+  if (score >= 45) return 'NEUTRE'
+  if (score >= 30) return 'ATTENTION'
+  return 'RISQUÉ'
 }
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-5">
-      <h2 className="text-[0.65rem] font-bold uppercase tracking-widest text-zinc-500 mb-4">{title}</h2>
-      {children}
-    </div>
-  )
+function verdictFor(score: number): string {
+  if (score >= 75) return 'Signal fort'
+  if (score >= 60) return 'À surveiller'
+  if (score >= 45) return 'Pas de signal'
+  if (score >= 30) return 'Vent contraire'
+  return 'À éviter'
 }
-
-function KVRow({ label, value, color }: { label: string; value: string; color?: string }) {
-  return (
-    <div className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0">
-      <span className="text-sm text-zinc-400">{label}</span>
-      <span className={`text-sm font-semibold tabular-nums ${color ?? 'text-white'}`}>{value}</span>
-    </div>
-  )
+function dateFmt(iso: string): string {
+  const d = new Date(iso)
+  const months = ['JANV.', 'FÉV.', 'MARS', 'AVR.', 'MAI', 'JUIN', 'JUIL.', 'AOÛT', 'SEPT.', 'OCT.', 'NOV.', 'DÉC.']
+  return `${d.getDate().toString().padStart(2, '0')} ${months[d.getMonth()]}`
 }
-
-function KVBar({ value, max, color }: { value: number; max: number; color: string }) {
-  const w = clamp((value / max) * 100, 0, 100)
-  return (
-    <div className="mt-1.5 h-1 rounded-full bg-white/[0.06] overflow-hidden">
-      <div className={`h-full rounded-full ${color}`} style={{ width: `${w}%` }} />
-    </div>
-  )
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime()
+  const days = Math.floor(ms / 86_400_000)
+  if (days <= 0) return "aujourd'hui"
+  if (days === 1) return 'hier'
+  if (days < 7) return `il y a ${days} jours`
+  if (days < 31) return `il y a ${Math.floor(days / 7)} sem.`
+  if (days < 365) return `il y a ${Math.floor(days / 30)} mois`
+  return `il y a ${Math.floor(days / 365)} ans`
 }
 
-function PillarBar({ label, score }: { label: string; score: number }) {
-  const color = score >= 70 ? 'bg-emerald-500' : score >= 50 ? 'bg-amber-500' : 'bg-rose-500'
-  return (
-    <div className="grid grid-cols-[110px_1fr_28px] items-center gap-3">
-      <span className="text-sm text-zinc-300">{label}</span>
-      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${score}%` }} />
-      </div>
-      <span className={`text-sm font-bold tabular-nums text-right ${scoreTwColor(score)}`}>{score}</span>
-    </div>
-  )
-}
-
-// ── Gauge SVG ────────────────────────────────────────────────────────────────
-
-function ScoreGauge({ score, label }: { score: number; label: string | null }) {
-  const HALF_C = 169.65
-  const offset = (HALF_C * (100 - score)) / 100
-  const color = scoreColor(score)
-  return (
-    <div className="flex flex-col items-center">
-      <svg viewBox="0 0 120 72" width="180" height="108">
-        <circle cx="60" cy="70" r="54" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10"
-          strokeDasharray={`${HALF_C} ${HALF_C}`} strokeLinecap="round"
-          transform="rotate(180,60,70)" />
-        <circle cx="60" cy="70" r="54" fill="none" stroke={color} strokeWidth="10"
-          strokeDasharray={`${HALF_C} ${HALF_C}`} strokeDashoffset={offset}
-          strokeLinecap="round" transform="rotate(180,60,70)" />
-        <text x="60" y="56" textAnchor="middle" fill={color}
-          fontSize="28" fontWeight="700" fontFamily="-apple-system,sans-serif">{score}</text>
-        <text x="60" y="68" textAnchor="middle" fill="rgba(248,250,252,0.35)"
-          fontSize="9" fontFamily="-apple-system,sans-serif">/ 100</text>
-      </svg>
-      {label && <span className="text-sm font-semibold mt-1" style={{ color }}>{label}</span>}
-    </div>
-  )
-}
-
-// ── Score History Chart ───────────────────────────────────────────────────────
-
-function HistoryChart({ history }: { history: ScoreHistory[] }) {
-  if (history.length < 2) return null
-  const W = 400, H = 100, PAD = 8
-  const scores = history.map(h => h.score)
-  const min = Math.max(0, Math.min(...scores) - 5)
-  const max = Math.min(100, Math.max(...scores) + 5)
-  const range = max - min || 1
-  const px = (i: number) => PAD + (i * (W - PAD * 2)) / (scores.length - 1)
-  const py = (v: number) => H - PAD - ((v - min) / range) * (H - PAD * 2)
-  const pts = scores.map((v, i) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(' ')
-  const areaD = `M${px(0).toFixed(1)},${py(scores[0]).toFixed(1)} L${pts} L${px(scores.length - 1).toFixed(1)},${H} L${px(0).toFixed(1)},${H} Z`
-  const first = scores[0], last = scores[scores.length - 1]
-
-  return (
-    <div className="mt-3">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={areaD} fill="url(#sg)" />
-        <polyline points={pts} fill="none" stroke="#6366f1" strokeWidth="2"
-          strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={px(0)} cy={py(first)} r="3" fill="#6366f1" />
-        <text x={px(0) + 5} y={py(first) - 4} fill="#a5b4fc" fontSize="8">{first}</text>
-        <circle cx={px(scores.length - 1)} cy={py(last)} r="3" fill="#6366f1" />
-        <text x={px(scores.length - 1) - 5} y={py(last) - 4} fill="#a5b4fc" fontSize="8"
-          textAnchor="end">{last}</text>
-      </svg>
-    </div>
-  )
-}
-
-// ── RSI Visual ────────────────────────────────────────────────────────────────
-
-function RSIVisual({ rsi }: { rsi: number }) {
-  const color = rsi > 70 ? '#ef4444' : rsi < 30 ? '#10b981' : '#818cf8'
-  const label = rsi > 70 ? 'Suracheté' : rsi < 30 ? 'Survendu' : 'Neutre'
-  return (
-    <div className="mt-2 space-y-1">
-      <div className="relative h-2 rounded-full bg-white/[0.06] overflow-visible">
-        <div className="absolute inset-0 rounded-full" style={{
-          background: 'linear-gradient(to right, #10b981 0%, #10b981 30%, #818cf8 30%, #818cf8 70%, #ef4444 70%)',
-          opacity: 0.2,
-        }} />
-        <div className="absolute w-2.5 h-2.5 rounded-full border-2 border-[#0f0f1a] -top-0.5 -translate-x-1/2"
-          style={{ left: `${rsi}%`, background: color }} />
-      </div>
-      <div className="flex justify-between text-[0.6rem] text-zinc-600">
-        <span>Survendu &lt;30</span>
-        <span className="font-medium" style={{ color }}>{label} {rsi.toFixed(1)}</span>
-        <span>Suracheté &gt;70</span>
-      </div>
-    </div>
-  )
-}
-
-// ── 52-week Range Bar ─────────────────────────────────────────────────────────
-
-function RangeBar({ low, high, current, currency }: { low: number; high: number; current: number; currency: string }) {
-  const pos = clamp(((current - low) / (high - low)) * 100, 0, 100)
-  return (
-    <div className="mt-2 space-y-1">
-      <div className="relative h-2 rounded-full bg-white/[0.06]">
-        <div className="absolute h-full w-full rounded-full" style={{
-          background: 'linear-gradient(to right, #10b981, #f59e0b, #ef4444)',
-          opacity: 0.25,
-        }} />
-        <div className="absolute w-3 h-3 rounded-full bg-white border-2 border-indigo-400 -top-0.5 -translate-x-1/2"
-          style={{ left: `${pos}%` }} />
-      </div>
-      <div className="flex justify-between text-[0.6rem] text-zinc-500 tabular-nums">
-        <span>{low.toFixed(2)} {currency}</span>
-        <span className="text-zinc-300 font-semibold">{current.toFixed(2)}</span>
-        <span>{high.toFixed(2)} {currency}</span>
-      </div>
-    </div>
-  )
-}
-
-// ── Debt Tag ──────────────────────────────────────────────────────────────────
-
-function DebtTag({ ratio }: { ratio: number }) {
-  if (ratio < 0) return <span className="ml-2 px-1.5 py-0.5 rounded text-[0.6rem] font-bold bg-emerald-500/15 text-emerald-400">Trés. nette</span>
-  if (ratio <= 1) return <span className="ml-2 px-1.5 py-0.5 rounded text-[0.6rem] font-bold bg-emerald-500/15 text-emerald-400">Faible</span>
-  if (ratio <= 2.5) return <span className="ml-2 px-1.5 py-0.5 rounded text-[0.6rem] font-bold bg-amber-500/15 text-amber-400">Modéré</span>
-  if (ratio <= 4) return <span className="ml-2 px-1.5 py-0.5 rounded text-[0.6rem] font-bold bg-orange-500/15 text-orange-400">Élevé</span>
-  return <span className="ml-2 px-1.5 py-0.5 rounded text-[0.6rem] font-bold bg-rose-500/15 text-rose-400">Critique</span>
-}
-
-function BetaTag({ beta }: { beta: number }) {
-  if (beta <= 0.8) return <span className="ml-2 px-1.5 py-0.5 rounded text-[0.6rem] font-bold bg-emerald-500/15 text-emerald-400">Défensif</span>
-  if (beta >= 1.5) return <span className="ml-2 px-1.5 py-0.5 rounded text-[0.6rem] font-bold bg-orange-500/15 text-orange-400">Volatil</span>
-  return null
-}
-
-// ── Signal Zone computation ───────────────────────────────────────────────────
-
-type Signal = { label: string; value: string; type: 'buy' | 'sell'; strength: number; desc: string }
-type SignalCategory = { title: string; signals: Signal[] }
-
-function computeSignals(fin: Financials | null, mkt: MarketData | null): {
-  categories: SignalCategory[]
-  buyPts: number
-  sellPts: number
-  zone: string
-  zoneLabel: string
-  zoneDesc: string
-  buyPct: number
-} {
-  const techSigs: Signal[] = []
-  const valSigs: Signal[] = []
-  const qualSigs: Signal[] = []
-  const analystSigs: Signal[] = []
-  let buy = 0, sell = 0
-
-  // ── Technical ──
-  const rsi = mkt?.rsi_14
-  if (n(rsi)) {
-    if (rsi <= 25) { buy += 3; techSigs.push({ label: 'RSI très survendu', value: `${rsi.toFixed(0)}`, type: 'buy', strength: 3, desc: 'Fort signal de rebond' }) }
-    else if (rsi <= 35) { buy += 2; techSigs.push({ label: 'RSI survendu', value: `${rsi.toFixed(0)}`, type: 'buy', strength: 2, desc: 'Potentiel de rebond' }) }
-    else if (rsi <= 45) { buy += 1; techSigs.push({ label: 'RSI zone basse', value: `${rsi.toFixed(0)}`, type: 'buy', strength: 1, desc: 'Sous pression vendeuse' }) }
-    else if (rsi >= 80) { sell += 3; techSigs.push({ label: 'RSI très suracheté', value: `${rsi.toFixed(0)}`, type: 'sell', strength: 3, desc: 'Correction probable' }) }
-    else if (rsi >= 70) { sell += 2; techSigs.push({ label: 'RSI suracheté', value: `${rsi.toFixed(0)}`, type: 'sell', strength: 2, desc: 'Prudence recommandée' }) }
-    else if (rsi >= 60) { sell += 1; techSigs.push({ label: 'RSI zone haute', value: `${rsi.toFixed(0)}`, type: 'sell', strength: 1, desc: 'Momentum élevé' }) }
-  }
-
-  const low52 = mkt?.fifty_two_week_low, high52 = mkt?.fifty_two_week_high, cur = mkt?.current_price
-  if (n(low52) && n(high52) && n(cur)) {
-    const span = high52 - low52
-    if (span > 0) {
-      const pos = ((cur - low52) / span) * 100
-      if (pos <= 15) { buy += 3; techSigs.push({ label: 'Proche plus bas 52s', value: `${pos.toFixed(0)}%`, type: 'buy', strength: 3, desc: 'Prix historiquement bas' }) }
-      else if (pos <= 30) { buy += 2; techSigs.push({ label: 'Zone basse 52s', value: `${pos.toFixed(0)}%`, type: 'buy', strength: 2, desc: "Point d'entrée possible" }) }
-      else if (pos >= 95) { sell += 3; techSigs.push({ label: 'Plus haut 52s', value: `${pos.toFixed(0)}%`, type: 'sell', strength: 3, desc: 'Résistance majeure' }) }
-      else if (pos >= 85) { sell += 2; techSigs.push({ label: 'Proche plus haut 52s', value: `${pos.toFixed(0)}%`, type: 'sell', strength: 2, desc: 'Potentiel limité' }) }
-    }
-  }
-
-  const sma50 = mkt?.sma_50, sma200 = mkt?.sma_200
-  if (n(sma50) && n(sma200) && n(cur)) {
-    if (cur > sma50 && cur > sma200 && sma50 > sma200) { buy += 2; techSigs.push({ label: 'Tendance haussière', value: 'Golden Cross', type: 'buy', strength: 2, desc: 'Prix > SMA50 > SMA200' }) }
-    else if (cur < sma50 && cur < sma200 && sma50 < sma200) { sell += 2; techSigs.push({ label: 'Tendance baissière', value: 'Death Cross', type: 'sell', strength: 2, desc: 'Prix < SMA50 < SMA200' }) }
-    else if (cur < sma200 && sma50 > sma200) { sell += 1; techSigs.push({ label: 'Sous SMA200', value: 'Support cassé', type: 'sell', strength: 1, desc: 'Retour sous moyenne long terme' }) }
-    else if (cur > sma200 && cur < sma50) { buy += 1; techSigs.push({ label: 'Pullback SMA50', value: 'Rebond?', type: 'buy', strength: 1, desc: 'Correction dans tendance haussière' }) }
-  }
-
-  const macdHist = mkt?.macd_histogram
-  if (n(macdHist) && n(cur) && cur > 0) {
-    const histPct = (macdHist / cur) * 100
-    if (histPct >= 0.5) { buy += 2; techSigs.push({ label: 'MACD fort haussier', value: 'Bullish', type: 'buy', strength: 2, desc: 'Momentum haussier confirmé' }) }
-    else if (histPct >= 0.05) { buy += 1; techSigs.push({ label: 'MACD haussier', value: 'Bullish', type: 'buy', strength: 1, desc: "Signal d'achat MACD" }) }
-    else if (histPct <= -0.5) { sell += 2; techSigs.push({ label: 'MACD fort baissier', value: 'Bearish', type: 'sell', strength: 2, desc: 'Momentum baissier confirmé' }) }
-    else if (histPct <= -0.05) { sell += 1; techSigs.push({ label: 'MACD baissier', value: 'Bearish', type: 'sell', strength: 1, desc: 'Signal de vente MACD' }) }
-  }
-
-  const mom12 = mkt?.momentum_12m
-  if (n(mom12)) {
-    if (mom12 <= -40) { buy += 2; techSigs.push({ label: 'Chute massive', value: `${mom12.toFixed(0)}%`, type: 'buy', strength: 2, desc: 'Survente extrême' }) }
-    else if (mom12 <= -20) { buy += 1; techSigs.push({ label: 'Forte baisse 12m', value: `${mom12.toFixed(0)}%`, type: 'buy', strength: 1, desc: 'Potentiel rebond' }) }
-    else if (mom12 >= 80) { sell += 2; techSigs.push({ label: 'Hausse excessive', value: `+${mom12.toFixed(0)}%`, type: 'sell', strength: 2, desc: 'Surchauffe du titre' }) }
-    else if (mom12 >= 50) { sell += 1; techSigs.push({ label: 'Forte hausse 12m', value: `+${mom12.toFixed(0)}%`, type: 'sell', strength: 1, desc: 'Consolidation possible' }) }
-  }
-
-  // ── Valuation ──
-  const pe = fin?.pe_ttm
-  if (n(pe) && pe > 0) {
-    if (pe <= 10) { buy += 3; valSigs.push({ label: 'P/E très bas', value: `${pe.toFixed(1)}`, type: 'buy', strength: 3, desc: 'Valorisation attractive' }) }
-    else if (pe <= 15) { buy += 2; valSigs.push({ label: 'P/E attractif', value: `${pe.toFixed(1)}`, type: 'buy', strength: 2, desc: 'Sous la moyenne marché' }) }
-    else if (pe >= 50) { sell += 3; valSigs.push({ label: 'P/E très élevé', value: `${pe.toFixed(1)}`, type: 'sell', strength: 3, desc: 'Valorisation excessive' }) }
-    else if (pe >= 35) { sell += 2; valSigs.push({ label: 'P/E élevé', value: `${pe.toFixed(1)}`, type: 'sell', strength: 2, desc: 'Prime de croissance incluse' }) }
-    else if (pe >= 25) { sell += 1; valSigs.push({ label: 'P/E au-dessus moyenne', value: `${pe.toFixed(1)}`, type: 'sell', strength: 1, desc: 'Légèrement cher' }) }
-  }
-
-  const ev = fin?.ev_ebitda_ttm
-  if (n(ev) && ev > 0) {
-    if (ev <= 6) { buy += 2; valSigs.push({ label: 'EV/EBITDA bas', value: `${ev.toFixed(1)}x`, type: 'buy', strength: 2, desc: "Valorisation d'entreprise attractive" }) }
-    else if (ev <= 10) { buy += 1; valSigs.push({ label: 'EV/EBITDA correct', value: `${ev.toFixed(1)}x`, type: 'buy', strength: 1, desc: 'Multiple raisonnable' }) }
-    else if (ev >= 20) { sell += 2; valSigs.push({ label: 'EV/EBITDA élevé', value: `${ev.toFixed(1)}x`, type: 'sell', strength: 2, desc: 'Prix élevé vs cash-flow' }) }
-    else if (ev >= 15) { sell += 1; valSigs.push({ label: 'EV/EBITDA tendu', value: `${ev.toFixed(1)}x`, type: 'sell', strength: 1, desc: 'Multiple au-dessus moyenne' }) }
-  }
-
-  const fcfy = fin?.fcf_yield_ttm
-  if (n(fcfy)) {
-    if (fcfy >= 10) { buy += 3; valSigs.push({ label: 'FCF Yield excellent', value: `${fcfy.toFixed(1)}%`, type: 'buy', strength: 3, desc: 'Forte génération de cash' }) }
-    else if (fcfy >= 6) { buy += 2; valSigs.push({ label: 'FCF Yield bon', value: `${fcfy.toFixed(1)}%`, type: 'buy', strength: 2, desc: 'Cash-flow attractif' }) }
-    else if (fcfy <= 1) { sell += 2; valSigs.push({ label: 'FCF Yield faible', value: `${fcfy.toFixed(1)}%`, type: 'sell', strength: 2, desc: 'Peu de cash pour le prix' }) }
-    else if (fcfy <= 3) { sell += 1; valSigs.push({ label: 'FCF Yield bas', value: `${fcfy.toFixed(1)}%`, type: 'sell', strength: 1, desc: 'Rendement limité' }) }
-  }
-
-  const pb = fin?.pb_ratio
-  if (n(pb) && pb > 0) {
-    if (pb <= 1) { buy += 2; valSigs.push({ label: 'P/B sous 1', value: `${pb.toFixed(2)}x`, type: 'buy', strength: 2, desc: 'Sous valeur comptable' }) }
-    else if (pb <= 1.5) { buy += 1; valSigs.push({ label: 'P/B attractif', value: `${pb.toFixed(2)}x`, type: 'buy', strength: 1, desc: 'Proche valeur comptable' }) }
-    else if (pb >= 8) { sell += 2; valSigs.push({ label: 'P/B très élevé', value: `${pb.toFixed(1)}x`, type: 'sell', strength: 2, desc: 'Prime importante vs actifs' }) }
-  }
-
-  const divYield = mkt?.dividend_yield
-  if (n(divYield) && divYield > 0) {
-    if (divYield >= 0.05) { buy += 2; valSigs.push({ label: 'Dividende élevé', value: `${(divYield * 100).toFixed(1)}%`, type: 'buy', strength: 2, desc: 'Rendement attractif' }) }
-    else if (divYield >= 0.03) { buy += 1; valSigs.push({ label: 'Bon dividende', value: `${(divYield * 100).toFixed(1)}%`, type: 'buy', strength: 1, desc: 'Revenu régulier' }) }
-  }
-
-  // ── Quality ──
-  const roe = fin?.roe
-  if (n(roe)) {
-    if (roe >= 25) { buy += 2; qualSigs.push({ label: 'ROE excellent', value: `${roe.toFixed(0)}%`, type: 'buy', strength: 2, desc: 'Très rentable' }) }
-    else if (roe >= 15) { buy += 1; qualSigs.push({ label: 'ROE solide', value: `${roe.toFixed(0)}%`, type: 'buy', strength: 1, desc: 'Bonne rentabilité' }) }
-    else if (roe <= 5 && roe >= 0) { sell += 1; qualSigs.push({ label: 'ROE faible', value: `${roe.toFixed(0)}%`, type: 'sell', strength: 1, desc: 'Rentabilité limitée' }) }
-    else if (roe < 0) { sell += 2; qualSigs.push({ label: 'ROE négatif', value: `${roe.toFixed(0)}%`, type: 'sell', strength: 2, desc: 'Entreprise non rentable' }) }
-  }
-
-  const debt = fin?.net_debt_to_ebitda
-  if (n(debt)) {
-    if (debt < 0) { buy += 2; qualSigs.push({ label: 'Trésorerie nette', value: `${debt.toFixed(1)}x`, type: 'buy', strength: 2, desc: 'Cash > Dette' }) }
-    else if (debt <= 1) { buy += 1; qualSigs.push({ label: 'Dette faible', value: `${debt.toFixed(1)}x`, type: 'buy', strength: 1, desc: 'Bilan solide' }) }
-    else if (debt >= 5) { sell += 3; qualSigs.push({ label: 'Dette critique', value: `${debt.toFixed(1)}x`, type: 'sell', strength: 3, desc: 'Risque financier élevé' }) }
-    else if (debt >= 3.5) { sell += 2; qualSigs.push({ label: 'Dette élevée', value: `${debt.toFixed(1)}x`, type: 'sell', strength: 2, desc: 'Levier important' }) }
-  }
-
-  const fcfm = fin?.fcf_margin
-  if (n(fcfm)) {
-    if (fcfm >= 20) { buy += 2; qualSigs.push({ label: 'FCF Margin excellent', value: `${fcfm.toFixed(0)}%`, type: 'buy', strength: 2, desc: 'Machine à cash' }) }
-    else if (fcfm >= 10) { buy += 1; qualSigs.push({ label: 'FCF Margin bon', value: `${fcfm.toFixed(0)}%`, type: 'buy', strength: 1, desc: 'Génération de cash solide' }) }
-    else if (fcfm <= 0) { sell += 2; qualSigs.push({ label: 'FCF Margin négatif', value: `${fcfm.toFixed(0)}%`, type: 'sell', strength: 2, desc: 'Brûle du cash' }) }
-  }
-
-  const growth = fin?.revenue_cagr_3y
-  if (n(growth)) {
-    if (growth >= 20) { buy += 2; qualSigs.push({ label: 'Croissance forte', value: `${growth.toFixed(0)}%/an`, type: 'buy', strength: 2, desc: 'Expansion rapide' }) }
-    else if (growth >= 10) { buy += 1; qualSigs.push({ label: 'Bonne croissance', value: `${growth.toFixed(0)}%/an`, type: 'buy', strength: 1, desc: 'Dynamique positive' }) }
-    else if (growth <= -10) { sell += 2; qualSigs.push({ label: 'Décroissance', value: `${growth.toFixed(0)}%/an`, type: 'sell', strength: 2, desc: "Chiffre d'affaires en baisse" }) }
-    else if (growth <= 0) { sell += 1; qualSigs.push({ label: 'Stagnation', value: `${growth.toFixed(0)}%/an`, type: 'sell', strength: 1, desc: 'Pas de croissance' }) }
-  }
-
-  // ── Analysts ──
-  const target = mkt?.analyst_target_mean
-  if (n(target) && n(cur) && cur > 0) {
-    const upside = ((target - cur) / cur) * 100
-    const count = mkt?.analyst_count ? ` (${mkt.analyst_count} anal.)` : ''
-    if (upside >= 25) { buy += 3; analystSigs.push({ label: 'Fort upside analystes', value: `+${upside.toFixed(0)}%`, type: 'buy', strength: 3, desc: `Target ${target.toFixed(0)}${count}` }) }
-    else if (upside >= 10) { buy += 2; analystSigs.push({ label: 'Upside analystes', value: `+${upside.toFixed(0)}%`, type: 'buy', strength: 2, desc: `Target ${target.toFixed(0)}` }) }
-    else if (upside <= -15) { sell += 3; analystSigs.push({ label: 'Fort downside analystes', value: `${upside.toFixed(0)}%`, type: 'sell', strength: 3, desc: `Target ${target.toFixed(0)}` }) }
-    else if (upside <= -5) { sell += 2; analystSigs.push({ label: 'Downside analystes', value: `${upside.toFixed(0)}%`, type: 'sell', strength: 2, desc: `Target ${target.toFixed(0)}` }) }
-  }
-
-  const reco = mkt?.analyst_recommendation
-  if (reco) {
-    if (reco === 'strong_buy') { buy += 2; analystSigs.push({ label: 'Consensus Strong Buy', value: 'Strong Buy', type: 'buy', strength: 2, desc: 'Recommandation très positive' }) }
-    else if (reco === 'buy') { buy += 1; analystSigs.push({ label: 'Consensus Buy', value: 'Buy', type: 'buy', strength: 1, desc: 'Recommandation positive' }) }
-    else if (reco === 'sell') { sell += 2; analystSigs.push({ label: 'Consensus Sell', value: 'Sell', type: 'sell', strength: 2, desc: 'Recommandation négative' }) }
-    else if (reco === 'underperform') { sell += 1; analystSigs.push({ label: 'Consensus Underperform', value: 'Underperform', type: 'sell', strength: 1, desc: 'Sous-performance attendue' }) }
-  }
-
-  // ── Zone ──
-  let zone = 'neutral', zoneLabel = 'Zone neutre', zoneDesc = 'Pas de signal fort détecté'
-  const total = buy + sell
-  if (total === 0) { /* neutral */ }
-  else if (buy >= sell * 2.5 && buy >= 6) { zone = 'strong-buy'; zoneLabel = "Forte zone d'achat"; zoneDesc = "Multiples signaux d'achat convergents" }
-  else if (buy >= sell * 1.5) { zone = 'buy'; zoneLabel = "Zone d'achat"; zoneDesc = 'Signaux majoritairement positifs' }
-  else if (sell >= buy * 2.5 && sell >= 6) { zone = 'strong-sell'; zoneLabel = 'Forte zone de vente'; zoneDesc = 'Multiples signaux de vente convergents' }
-  else if (sell >= buy * 1.5) { zone = 'sell'; zoneLabel = 'Zone de vente'; zoneDesc = 'Signaux majoritairement négatifs' }
-  else if (buy > sell) { zone = 'buy'; zoneLabel = "Zone d'achat modérée"; zoneDesc = 'Léger avantage acheteur' }
-  else if (sell > buy) { zone = 'sell'; zoneLabel = 'Zone de vente modérée'; zoneDesc = 'Prudence recommandée' }
-
-  const buyPct = total > 0 ? Math.round((buy / total) * 100) : 50
-  const categories: SignalCategory[] = []
-  if (techSigs.length) categories.push({ title: '📊 Technique', signals: techSigs })
-  if (valSigs.length) categories.push({ title: '💰 Valorisation', signals: valSigs })
-  if (qualSigs.length) categories.push({ title: '⭐ Qualité', signals: qualSigs })
-  if (analystSigs.length) categories.push({ title: '🎯 Analystes', signals: analystSigs })
-
-  return { categories, buyPts: buy, sellPts: sell, zone, zoneLabel, zoneDesc, buyPct }
-}
-
-// ── Price Levels computation ──────────────────────────────────────────────────
-
-type PriceLevel = { label: string; desc: string; price: number; type: string; strength: number }
-
-function computePriceLevels(fin: Financials | null, mkt: MarketData | null): { buy: PriceLevel[]; sell: PriceLevel[] } {
-  const cur = mkt?.current_price
-  if (!n(cur)) return { buy: [], sell: [] }
-  const buy: PriceLevel[] = [], sell: PriceLevel[] = []
-
-  const low52 = mkt?.fifty_two_week_low, high52 = mkt?.fifty_two_week_high
-  if (n(low52) && n(high52)) {
-    const span = high52 - low52
-    const bz1 = low52 * 1.05
-    if (bz1 < cur) buy.push({ label: 'Zone basse 52s', desc: '+5% du plus bas', price: bz1, type: 'support', strength: 3 })
-    const bz2 = low52 + span * 0.25
-    if (bz2 < cur) buy.push({ label: 'Support 25%', desc: '25% du range 52s', price: bz2, type: 'support', strength: 2 })
-    const sz1 = high52 * 0.95
-    if (sz1 > cur) sell.push({ label: 'Zone haute 52s', desc: '-5% du plus haut', price: sz1, type: 'resistance', strength: 3 })
-    const sz2 = low52 + span * 0.75
-    if (sz2 > cur) sell.push({ label: 'Résistance 75%', desc: '75% du range 52s', price: sz2, type: 'resistance', strength: 2 })
-  }
-
-  const sma200 = mkt?.sma_200
-  if (n(sma200)) {
-    if (sma200 < cur) buy.push({ label: 'SMA 200', desc: 'Moyenne mobile long terme', price: sma200, type: 'ma', strength: 3 })
-    else sell.push({ label: 'SMA 200', desc: 'Résistance moyenne long terme', price: sma200, type: 'ma', strength: 2 })
-  }
-  const sma50 = mkt?.sma_50
-  if (n(sma50) && (!n(sma200) || Math.abs(sma50 - sma200) > 0.01)) {
-    if (sma50 < cur) buy.push({ label: 'SMA 50', desc: 'Moyenne mobile court terme', price: sma50, type: 'ma', strength: 2 })
-    else sell.push({ label: 'SMA 50', desc: 'Résistance moyenne court terme', price: sma50, type: 'ma', strength: 1 })
-  }
-
-  const pe = fin?.pe_ttm
-  if (n(pe) && pe > 0 && Math.abs(pe - 15) > 0.5) {
-    const fairPe = cur * (15 / pe)
-    if (fairPe < cur * 0.95) buy.push({ label: 'Juste valeur P/E', desc: 'P/E cible = 15x', price: fairPe, type: 'valuation', strength: 2 })
-    else if (fairPe > cur * 1.05) sell.push({ label: 'Survalor. P/E', desc: 'P/E actuel vs 15x', price: fairPe, type: 'valuation', strength: 1 })
-  }
-
-  const fcfy = fin?.fcf_yield_ttm
-  if (n(fcfy) && fcfy > 0 && Math.abs(fcfy - 5) > 0.5) {
-    const fairFcf = cur * (fcfy / 5)
-    if (fairFcf < cur * 0.9) buy.push({ label: 'Juste valeur FCF', desc: 'FCF yield cible = 5%', price: fairFcf, type: 'valuation', strength: 2 })
-    else if (fairFcf > cur * 1.1) sell.push({ label: 'Objectif FCF', desc: 'FCF yield actuel vs 5%', price: fairFcf, type: 'valuation', strength: 1 })
-  }
-
-  const target = mkt?.analyst_target_mean
-  if (n(target)) {
-    if (target > cur * 1.03) sell.push({ label: 'Target analystes', desc: 'Objectif moyen consensus', price: target, type: 'analyst', strength: 3 })
-    else if (target < cur * 0.97) buy.push({ label: 'Target analystes', desc: 'Objectif moyen (en-dessous)', price: target, type: 'analyst', strength: 2 })
-  }
-  const tHigh = mkt?.analyst_target_high
-  if (n(tHigh) && tHigh > cur * 1.05) sell.push({ label: 'Target haut analystes', desc: 'Objectif optimiste', price: tHigh, type: 'analyst', strength: 1 })
-  const tLow = mkt?.analyst_target_low
-  if (n(tLow) && tLow < cur * 0.95) buy.push({ label: 'Target bas analystes', desc: 'Objectif pessimiste', price: tLow, type: 'analyst', strength: 1 })
-
-  return {
-    buy: [...buy].sort((a, b) => b.price - a.price),
-    sell: [...sell].sort((a, b) => a.price - b.price),
-  }
-}
-
-// ── Signal Zone section ───────────────────────────────────────────────────────
-
-function SignalZoneSection({ fin, mkt }: { fin: Financials | null; mkt: MarketData | null }) {
-  const { categories, buyPts, sellPts, zone, zoneLabel, zoneDesc, buyPct } = computeSignals(fin, mkt)
-  const zoneColor = zone.includes('buy') ? 'text-emerald-400' : zone.includes('sell') ? 'text-rose-400' : 'text-zinc-400'
-  const zoneBorder = zone.includes('buy') ? 'border-emerald-500/20 bg-emerald-500/[0.03]' : zone.includes('sell') ? 'border-rose-500/20 bg-rose-500/[0.03]' : 'border-white/[0.06] bg-white/[0.01]'
-
-  return (
-    <SectionCard title="Zone d'Achat / Vente">
-      <div className={`rounded-lg border p-4 mb-4 ${zoneBorder}`}>
-        <div className={`text-base font-bold mb-1 ${zoneColor}`}>{zoneLabel}</div>
-        <p className="text-xs text-zinc-500 mb-3">{zoneDesc}</p>
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs text-zinc-500 w-10 text-right">Vente</span>
-          <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden relative">
-            <div className="absolute inset-y-0 left-0 rounded-full bg-emerald-500/50" style={{ width: `${buyPct}%` }} />
-          </div>
-          <span className="text-xs text-zinc-500 w-10">Achat</span>
-        </div>
-        <div className="flex justify-center gap-4 text-xs">
-          <span className="text-rose-400 font-semibold">🔴 {sellPts} pts vente</span>
-          <span className="text-zinc-600">|</span>
-          <span className="text-emerald-400 font-semibold">🟢 {buyPts} pts achat</span>
-        </div>
-      </div>
-
-      {categories.length > 0 ? (
-        <div className="space-y-3">
-          {categories.map(cat => (
-            <div key={cat.title}>
-              <div className="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-600 mb-1.5">{cat.title}</div>
-              <div className="space-y-1">
-                {cat.signals.map((sig, i) => (
-                  <div key={i} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg ${sig.type === 'buy' ? 'bg-emerald-500/[0.05]' : 'bg-rose-500/[0.05]'}`}>
-                    <span className={`text-xs font-bold w-3 ${sig.type === 'buy' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {sig.type === 'buy' ? '▲' : '▼'}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-white truncate">{sig.label}</div>
-                      <div className="text-[0.6rem] text-zinc-600 truncate">{sig.desc}</div>
-                    </div>
-                    <span className={`text-xs font-mono font-bold shrink-0 ${sig.type === 'buy' ? 'text-emerald-400' : 'text-rose-400'}`}>{sig.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-xs text-zinc-600 text-center py-4">Aucun signal fort détecté.</p>
-      )}
-      <p className="text-[0.6rem] text-zinc-700 mt-3 text-center">Signaux indicatifs — pas un conseil d&apos;investissement.</p>
-    </SectionCard>
-  )
-}
-
-// ── Price Levels section ──────────────────────────────────────────────────────
-
-function PriceLevelsSection({ fin, mkt, currency }: { fin: Financials | null; mkt: MarketData | null; currency: string }) {
-  const cur = mkt?.current_price
-  if (!n(cur)) return (
-    <SectionCard title="Niveaux de Prix">
-      <p className="text-xs text-zinc-600 text-center py-4">Prix actuel non disponible.</p>
-    </SectionCard>
-  )
-
-  const { buy, sell } = computePriceLevels(fin, mkt)
-  const low52 = mkt?.fifty_two_week_low, high52 = mkt?.fifty_two_week_high
-  const rangePos = n(low52) && n(high52) && high52 > low52
-    ? clamp(((cur - low52) / (high52 - low52)) * 100, 0, 100) : null
-
-  const fixedBuys = [
-    { label: '-5% du prix', desc: 'Premier palier', price: cur * 0.95 },
-    { label: '-10% du prix', desc: 'Renforcement', price: cur * 0.90 },
-    { label: '-15% du prix', desc: 'Achat agressif', price: cur * 0.85 },
-  ]
-  const fixedSells = [
-    { label: '+10% du prix', desc: 'Prise de profit', price: cur * 1.10 },
-    { label: '+20% du prix', desc: 'Objectif moyen terme', price: cur * 1.20 },
-    { label: '+30% du prix', desc: 'Objectif ambitieux', price: cur * 1.30 },
-  ]
-
-  return (
-    <SectionCard title="Niveaux de Prix">
-      <div className="text-center mb-4">
-        <span className="text-xs text-zinc-500">Prix actuel</span>
-        <div className="text-xl font-bold tabular-nums text-white">{cur.toFixed(2)} <span className="text-zinc-500 text-sm font-normal">{currency}</span></div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div>
-          <div className="text-[0.6rem] font-bold uppercase tracking-widest text-emerald-600 mb-2">Zone d&apos;Achat</div>
-          {fixedBuys.map((l, i) => (
-            <div key={i} className="flex items-center justify-between py-1 border-b border-white/[0.03]">
-              <div>
-                <div className="text-[0.7rem] text-zinc-400">{l.label}</div>
-                <div className="text-[0.6rem] text-zinc-600">{l.desc}</div>
-              </div>
-              <span className="text-xs font-mono font-bold text-emerald-400 tabular-nums">{l.price.toFixed(2)}</span>
-            </div>
-          ))}
-          {buy.map((l, i) => (
-            <div key={i} className={`flex items-center justify-between py-1 border-b border-white/[0.03] ${l.strength >= 3 ? 'opacity-100' : 'opacity-70'}`}>
-              <div>
-                <div className="text-[0.7rem] text-zinc-400">{l.label}</div>
-                <div className="text-[0.6rem] text-zinc-600">{l.desc}</div>
-              </div>
-              <span className="text-xs font-mono font-bold text-emerald-400 tabular-nums">{l.price.toFixed(2)}</span>
-            </div>
-          ))}
-        </div>
-        <div>
-          <div className="text-[0.6rem] font-bold uppercase tracking-widest text-rose-600 mb-2">Zone de Vente</div>
-          {fixedSells.map((l, i) => (
-            <div key={i} className="flex items-center justify-between py-1 border-b border-white/[0.03]">
-              <div>
-                <div className="text-[0.7rem] text-zinc-400">{l.label}</div>
-                <div className="text-[0.6rem] text-zinc-600">{l.desc}</div>
-              </div>
-              <span className="text-xs font-mono font-bold text-rose-400 tabular-nums">{l.price.toFixed(2)}</span>
-            </div>
-          ))}
-          {sell.map((l, i) => (
-            <div key={i} className={`flex items-center justify-between py-1 border-b border-white/[0.03] ${l.strength >= 3 ? 'opacity-100' : 'opacity-70'}`}>
-              <div>
-                <div className="text-[0.7rem] text-zinc-400">{l.label}</div>
-                <div className="text-[0.6rem] text-zinc-600">{l.desc}</div>
-              </div>
-              <span className="text-xs font-mono font-bold text-rose-400 tabular-nums">{l.price.toFixed(2)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {rangePos !== null && n(low52) && n(high52) && (
-        <div>
-          <div className="relative h-4 rounded-full overflow-hidden">
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(16,185,129,0.3) 30%, rgba(245,158,11,0.2) 30% 70%, rgba(239,68,68,0.3) 70%)' }} />
-            <div className="absolute top-1/2 w-2.5 h-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white border-2 border-indigo-400"
-              style={{ left: `${rangePos}%` }} />
-          </div>
-          <div className="flex justify-between text-[0.6rem] text-zinc-600 mt-1">
-            <span className="text-emerald-700">Achat</span><span className="text-amber-700">Neutre</span><span className="text-rose-700">Vente</span>
-          </div>
-        </div>
-      )}
-      <p className="text-[0.6rem] text-zinc-700 mt-3 text-center">Niveaux indicatifs — adaptez à votre stratégie.</p>
-    </SectionCard>
-  )
-}
-
-// ── Guest Teaser ──────────────────────────────────────────────────────────────
+// ── Teaser (non-auth) — kept simple ──────────────────────────────────────────
 
 function TeaserBlock({ ticker, row }: { ticker: string; row: TickerScore }) {
-  const currency = row.currency || ''
   return (
-    <div className="min-h-screen bg-[#0f0f1a] text-white">
+    <div className="min-h-screen" style={{ background: C.bg, color: C.ink }}>
       <AppNav activePath="" />
-      <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">
-        <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-white transition-colors">
-          <span>←</span> Screener
+      <main style={{ maxWidth: 1320, margin: '0 auto', padding: '48px 40px' }}>
+        <Link href="/dashboard" style={{ fontFamily: mono, fontSize: 11, color: C.muted, textDecoration: 'none', letterSpacing: '0.14em' }}>
+          ← RETOUR AU SCREENER
         </Link>
 
-        {/* Header — fully visible */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-1 flex-wrap">
-              <h1 className="text-2xl font-bold truncate">{row.company_name || ticker}</h1>
-              <span className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-white/[0.06] text-zinc-300 shrink-0">{ticker}</span>
+        <div style={{ marginTop: 32, display: 'grid', gridTemplateColumns: '1fr auto', gap: 40, alignItems: 'center' }}>
+          <div>
+            <div style={{ fontFamily: mono, fontSize: 11, color: toneFor(row.score_total), letterSpacing: '0.22em', marginBottom: 12 }}>
+              § APERÇU · {(row.sector ?? '').toUpperCase()}
             </div>
-            <div className="flex items-center gap-2 text-sm text-zinc-500 flex-wrap">
-              {row.sector && <span>{row.sector}</span>}
-              {row.sector && row.exchange && <span>·</span>}
-              {row.exchange && <span>{row.exchange}</span>}
-              {row.market_cap && <><span>·</span><span>{fmtCap(row.market_cap)} {currency}</span></>}
+            <h1 style={{ fontFamily: serif, fontSize: 64, fontWeight: 500, lineHeight: 1, letterSpacing: '-0.03em', margin: 0 }}>
+              {row.company_name ?? ticker}
+            </h1>
+            <div style={{ marginTop: 18, fontFamily: mono, fontSize: 13, color: C.muted, letterSpacing: '0.12em' }}>
+              {ticker} · {row.exchange ?? '—'}
             </div>
-            {row.one_liner && (
-              <p className="mt-2 text-sm text-zinc-400 max-w-lg italic">&ldquo;{row.one_liner}&rdquo;</p>
-            )}
-            {row.moat_tags && row.moat_tags.length > 0 && (
-              <div className="flex gap-1.5 mt-2 flex-wrap">
-                {row.moat_tags.map(tag => (
-                  <span key={tag} className="px-2 py-0.5 rounded-full text-xs bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">{tag}</span>
-                ))}
-              </div>
-            )}
           </div>
-          {/* Score badge — visible */}
-          <div className={`flex flex-col items-center justify-center w-24 h-24 rounded-2xl border ${scoreBgBorder(row.score_total)} shrink-0`}>
-            <span className={`text-4xl font-black tabular-nums ${scoreTwColor(row.score_total)}`}>{row.score_total}</span>
-            <span className="text-[10px] uppercase tracking-wider text-zinc-500 mt-0.5">{row.score_label || 'Score'}</span>
-          </div>
+          <Gauge value={row.score_total} size={200} stroke={14} label={bandFor(row.score_total)} />
         </div>
 
-        {/* Locked section with signup CTA */}
-        <div className="relative rounded-2xl border border-indigo-500/25 bg-indigo-500/5 overflow-hidden">
-          {/* Blurred fake content */}
-          <div className="absolute inset-0 pointer-events-none select-none p-6 space-y-4 blur-sm opacity-20">
-            <div className="grid grid-cols-3 gap-3">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-20 rounded-xl bg-white/10" />
-              ))}
-            </div>
-            <div className="h-2 bg-white/20 rounded w-3/4" />
-            <div className="h-2 bg-white/20 rounded w-1/2" />
-            <div className="grid grid-cols-2 gap-3">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-12 rounded-lg bg-white/10" />
-              ))}
-            </div>
-            <div className="h-2 bg-white/20 rounded w-2/3" />
+        <div style={{ marginTop: 48, padding: 32, border: `1px solid ${C.phosphor}40`, background: `${C.phosphor}06`, borderRadius: 16, textAlign: 'center' }}>
+          <div style={{ fontFamily: serif, fontSize: 24, color: C.ink, marginBottom: 12 }}>
+            Le dossier complet est <span style={{ fontStyle: 'italic', color: C.phosphor }}>réservé aux comptes.</span>
           </div>
-
-          {/* CTA overlay */}
-          <div className="relative z-10 py-14 px-6 flex flex-col items-center text-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center">
-              <svg className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-lg font-bold text-white">Débloquez l&apos;analyse complète</p>
-              <p className="text-sm text-zinc-400 mt-1.5 max-w-sm leading-relaxed">
-                Breakdown des 3 piliers, signaux d&apos;achat/vente, métriques fondamentales, indicateurs techniques.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
-              <Link
-                href="/login?mode=signup"
-                className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition-colors text-sm font-bold text-white text-center shadow-lg shadow-indigo-500/20"
-              >
-                Créer un compte gratuit
-              </Link>
-              <Link
-                href="/login"
-                className="flex-1 py-3 rounded-xl border border-white/[0.1] text-sm text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors text-center"
-              >
-                Se connecter
-              </Link>
-            </div>
-            <p className="text-xs text-zinc-600">Gratuit · 5 analyses/jour · Sans carte bancaire</p>
+          <div style={{ fontFamily: sans, fontSize: 14, color: C.inkDim, marginBottom: 24, maxWidth: 480, margin: '0 auto 24px' }}>
+            Décomposition des trois piliers, métriques détaillées, historique du score, comparaison sectorielle.
+          </div>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <Link href="/login?mode=signup" style={{
+              padding: '12px 24px', background: C.phosphor, color: C.bg, borderRadius: 8,
+              fontFamily: sans, fontWeight: 600, fontSize: 14, textDecoration: 'none',
+            }}>
+              Créer un compte gratuit
+            </Link>
+            <Link href="/login" style={{
+              padding: '12px 24px', border: `1px solid ${C.rule}`, color: C.inkDim, borderRadius: 8,
+              fontFamily: sans, fontWeight: 600, fontSize: 14, textDecoration: 'none',
+            }}>
+              Se connecter
+            </Link>
+          </div>
+          <div style={{ marginTop: 18, fontFamily: mono, fontSize: 10, color: C.muteDeep, letterSpacing: '0.18em' }}>
+            5 ANALYSES GRATUITES PAR JOUR · SANS CARTE BANCAIRE
           </div>
         </div>
       </main>
@@ -787,13 +200,13 @@ function TeaserBlock({ ticker, row }: { ticker: string; row: TickerScore }) {
   )
 }
 
-// ── Freemium ──────────────────────────────────────────────────────────────────
+// ── Paywall ──────────────────────────────────────────────────────────────────
 
 const DAILY_LIMIT = 5
 const LEMON_URL = process.env.NEXT_PUBLIC_LEMON_CHECKOUT_URL || '/pricing'
 
 function PaywallBlock({
-  ticker, companyName, score, scoreLabel, email, userId,
+  ticker, companyName, score, email, userId,
 }: {
   ticker: string; companyName: string | null; score: number; scoreLabel: string | null
   email: string; userId: string
@@ -803,62 +216,990 @@ function PaywallBlock({
     : '/pricing'
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] text-white flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ background: C.bg, color: C.ink }}>
       <AppNav activePath="" />
-      <main className="flex-1 flex items-center justify-center px-6 py-16">
-        <div className="w-full max-w-md text-center space-y-6">
-          {/* Ticker preview */}
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-6">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <h2 className="text-xl font-bold">{companyName || ticker}</h2>
-              <span className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-white/[0.06] text-zinc-400">{ticker}</span>
-            </div>
-            {/* Blurred score */}
-            <div className="relative inline-flex flex-col items-center justify-center w-24 h-24 rounded-2xl border border-white/[0.06] bg-white/[0.02] mb-4">
-              <span className="text-4xl font-black tabular-nums text-zinc-300 blur-sm select-none">{score}</span>
-              <span className="text-[10px] uppercase tracking-wider text-zinc-600 mt-0.5">{scoreLabel || 'Score'}</span>
-              <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-[#0f0f1a]/60">
-                <span className="text-2xl">🔒</span>
-              </div>
-            </div>
-            <p className="text-sm text-zinc-500">Analyse complète verrouillée</p>
+      <main className="flex-1 flex items-center justify-center" style={{ padding: '60px 24px' }}>
+        <div style={{ maxWidth: 460, textAlign: 'center' }}>
+          <div style={{ fontFamily: mono, fontSize: 11, color: C.ember, letterSpacing: '0.24em', marginBottom: 18 }}>
+            § QUOTA ATTEINT
           </div>
-
-          {/* Limit message */}
-          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-5">
-            <p className="text-amber-300 font-semibold mb-1">Limite journalière atteinte</p>
-            <p className="text-sm text-zinc-400">
-              Tu as utilisé tes <strong className="text-white">{DAILY_LIMIT} analyses gratuites</strong> aujourd&apos;hui.
-              Le compteur se remet à zéro à minuit UTC.
-            </p>
-          </div>
-
-          {/* CTA */}
-          <div className="space-y-3">
-            <a
-              href={checkoutUrl}
-              className="block w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition-colors text-sm font-bold text-white shadow-lg shadow-indigo-500/20"
-            >
-              Passer à Premium — 4,99 €/mois
-            </a>
-            <Link
-              href="/dashboard"
-              className="block w-full py-3 rounded-xl border border-white/[0.08] text-sm text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors"
-            >
-              Retour au screener
-            </Link>
-          </div>
-
-          <p className="text-xs text-zinc-700">
-            Premium = analyses illimitées · sans engagement
+          <h1 style={{ fontFamily: serif, fontSize: 56, fontWeight: 500, lineHeight: 1, letterSpacing: '-0.03em', margin: '0 0 18px' }}>
+            <span style={{ fontStyle: 'italic', color: C.ember }}>{companyName ?? ticker}</span> reste verrouillé.
+          </h1>
+          <p style={{ fontFamily: serif, fontStyle: 'italic', fontSize: 17, color: C.inkDim, lineHeight: 1.5, margin: '0 auto 32px', maxWidth: 380 }}>
+            Vos {DAILY_LIMIT} analyses gratuites sont consommées. Le compteur revient à zéro à minuit UTC.
           </p>
+          <div style={{ marginBottom: 24 }}>
+            <Gauge value={score} size={140} stroke={10} showNumeral={false} />
+          </div>
+          <a href={checkoutUrl} style={{
+            display: 'block', padding: '14px 22px', background: C.phosphor, color: C.bg, borderRadius: 10,
+            fontFamily: sans, fontWeight: 700, fontSize: 14, textDecoration: 'none', marginBottom: 12,
+          }}>
+            Passer à Premium — 4,99 €/mois
+          </a>
+          <Link href="/dashboard" style={{
+            display: 'block', padding: '12px 22px', border: `1px solid ${C.rule}`, color: C.inkDim, borderRadius: 10,
+            fontFamily: sans, fontWeight: 600, fontSize: 14, textDecoration: 'none',
+          }}>
+            Retour au screener
+          </Link>
         </div>
       </main>
     </div>
   )
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ── §0 Subnav — sticky tabs + actions ────────────────────────────────────────
+
+function DetailsSubnav({ row, ticker, inWatchlist }: {
+  row: TickerScore; ticker: string; inWatchlist: boolean
+}) {
+  const tabs = [
+    { id: 'overview', label: "Vue d'ensemble" },
+    { id: 'pillars',  label: 'Piliers' },
+    { id: 'history',  label: 'Historique' },
+    { id: 'peers',    label: 'Pairs' },
+    { id: 'events',   label: 'Calendrier' },
+  ]
+  return (
+    <div style={{
+      position: 'sticky', top: 56, zIndex: 30,
+      background: `${C.bg}F0`, backdropFilter: 'blur(14px)',
+      borderBottom: `1px solid ${C.rule}`,
+    }}>
+      <div style={{
+        maxWidth: 1320, margin: '0 auto', padding: '0 40px',
+        display: 'flex', alignItems: 'center', gap: 24, height: 52,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+          <span style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, letterSpacing: '-0.02em' }}>
+            {ticker}
+          </span>
+          <span style={{ fontFamily: sans, fontSize: 12, color: C.muted }}>
+            {row.company_name ?? ''}
+          </span>
+        </div>
+
+        <div style={{ flex: 1, display: 'flex', gap: 4, marginLeft: 20 }}>
+          {tabs.map(t => (
+            <a key={t.id} href={`#${t.id}`} style={{
+              padding: '6px 12px', background: 'transparent',
+              color: C.muteDeep, textDecoration: 'none',
+              fontFamily: sans, fontSize: 13, fontWeight: 400,
+              borderBottom: '2px solid transparent', marginBottom: -1,
+            }}>
+              {t.label}
+            </a>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{
+            border: `1px solid ${inWatchlist ? C.phosphor + '60' : C.rule}`,
+            padding: '6px 10px', borderRadius: 6,
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontFamily: mono, fontSize: 10, letterSpacing: '0.14em', fontWeight: 600,
+            color: inWatchlist ? C.phosphor : C.inkDim,
+          }}>
+            <WatchlistButton ticker={ticker} initialInWatchlist={inWatchlist} size="sm" />
+            {inWatchlist ? 'SUIVI' : 'SUIVRE'}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── §1 Masthead — hero with gauge + verdict ──────────────────────────────────
+
+function DetailsMasthead({ row, ticker, history }: {
+  row: TickerScore; ticker: string; history: ScoreHistory[]
+}) {
+  const score = row.score_total
+  const tone = toneFor(score)
+  const band = bandFor(score)
+  const verdict = verdictFor(score)
+  const mkt = row.market_data
+  const fin = row.financials
+  const currency = row.currency ?? ''
+
+  const decomp = {
+    fund: row.score_fundamentals / 100,
+    tech: row.score_technicals / 100,
+    mom:  row.score_momentum / 100,
+  }
+
+  // Takeaways: top 3 importance_items
+  const imp = row.importance_items ?? []
+  const takeaways = [...imp]
+    .sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0))
+    .slice(0, 3)
+    .map((t, i) => ({
+      tag: t.direction === 'positive' ? 'FORCE' : t.direction === 'negative' ? 'FAIBLESSE' : 'CONTEXTE',
+      tone: t.direction === 'positive' ? C.phosphor : t.direction === 'negative' ? C.sanguine : C.ember,
+      text: t.why || t.label,
+      idx: i + 1,
+    }))
+
+  // Last recompute time
+  const lastIso = history.length > 0 ? history[history.length - 1].scored_at : row.computed_at
+  const lastTime = new Date(lastIso)
+  const recomputeLabel = `${lastTime.toISOString().slice(11, 16)} UTC`
+
+  const verdictText = row.one_liner ??
+    (score >= 75 ? "Les trois piliers sont alignés. La conjoncture, les fondamentaux et le momentum convergent — c'est exactement la situation que le screener cherche à isoler."
+    : score >= 60 ? "Le score est solide, mais un pilier traîne. Avant d'entrer, vérifiez la cohérence entre la croissance et la valorisation."
+    : score >= 45 ? "Aucun signal franc dans un sens ou dans l'autre. Le titre n'est ni à acheter ni à éviter — il attend une catalyse."
+    : "Plusieurs piliers en faiblesse. Ce n'est pas le moment d'ajouter — c'est le moment de poser des questions au management.")
+
+  return (
+    <section id="overview" style={{ padding: '32px 40px 0', maxWidth: 1320, margin: '0 auto' }}>
+      {/* breadcrumb / dateline */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+        fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.18em',
+        paddingBottom: 14, borderBottom: `1px solid ${C.rule}`, flexWrap: 'wrap', gap: 12,
+      }}>
+        <span>
+          <Link href="/dashboard" style={{ color: C.muted, textDecoration: 'none' }}>SCREENER</Link>
+          &nbsp;/&nbsp;
+          <span style={{ color: C.muted }}>{(row.sector ?? '').toUpperCase()}</span>
+          &nbsp;/&nbsp;
+          <span style={{ color: C.ink }}>{ticker}</span>
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%', background: C.phosphor,
+            boxShadow: `0 0 6px ${C.phosphor}`,
+          }} />
+          DERNIER RECALCUL · {recomputeLabel}
+        </span>
+      </div>
+
+      {/* Title + price strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 60, padding: '36px 0 28px' }}>
+        <div>
+          <div style={{ fontFamily: mono, fontSize: 11, color: tone, letterSpacing: '0.22em', marginBottom: 14 }}>
+            § DOSSIER · {(row.sector ?? '').toUpperCase()}
+          </div>
+          <h1 style={{
+            fontFamily: serif, fontSize: 76, fontWeight: 500, lineHeight: 0.96,
+            letterSpacing: '-0.04em', color: C.ink, margin: 0,
+          }}>
+            {(row.company_name ?? ticker).split(' ').slice(0, 1).join(' ')}
+            {(row.company_name ?? '').split(' ').length > 1 && (
+              <>
+                <br/>
+                <span style={{ fontStyle: 'italic', color: tone }}>
+                  {(row.company_name ?? '').split(' ').slice(1).join(' ')}
+                </span>
+              </>
+            )}
+          </h1>
+          <div style={{ display: 'flex', gap: 24, marginTop: 22, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: mono, fontSize: 13, color: C.muted, letterSpacing: '0.12em' }}>
+              {ticker} · {row.exchange ?? '—'}
+            </span>
+            {n(mkt?.current_price) && (
+              <span style={{ fontFamily: mono, fontSize: 13, color: C.inkDim }}>
+                {mkt!.current_price!.toFixed(2)} {currency}
+              </span>
+            )}
+            {n(mkt?.change_pct) && (
+              <span style={{
+                fontFamily: mono, fontSize: 13, fontWeight: 600,
+                color: mkt!.change_pct! < 0 ? C.sanguine : C.phosphor,
+              }}>
+                {mkt!.change_pct! < 0 ? '▼' : '▲'} {fmtSignPct(mkt!.change_pct!)}
+              </span>
+            )}
+            {row.moat_tags && row.moat_tags.length > 0 && (
+              <div style={{ display: 'flex', gap: 6 }}>
+                {row.moat_tags.slice(0, 3).map(t => (
+                  <span key={t} style={{
+                    fontFamily: mono, fontSize: 9, color: C.phosphor, letterSpacing: '0.16em',
+                    border: `1px solid ${C.phosphor}40`, padding: '3px 7px', borderRadius: 3,
+                  }}>
+                    {t.toUpperCase()}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Price stat strip */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          border: `1px solid ${C.rule}`, borderRadius: 12, overflow: 'hidden',
+        }}>
+          {[
+            { lab: 'CAP. BOURS.', val: row.market_cap ? `${fmtCap(row.market_cap)}` : '—' },
+            { lab: 'PER', val: n(fin?.pe_ttm) && fin!.pe_ttm! > 0 ? `${fin!.pe_ttm!.toFixed(1)}×` : '—' },
+            { lab: 'VOL. JOUR', val: fmtVol(mkt?.volume) },
+            {
+              lab: '52S RANGE',
+              val: n(mkt?.fifty_two_week_low) && n(mkt?.fifty_two_week_high)
+                ? `${mkt!.fifty_two_week_low!.toFixed(0)}–${mkt!.fifty_two_week_high!.toFixed(0)}`
+                : '—',
+              small: true,
+            },
+          ].map((s, i) => (
+            <div key={s.lab} style={{
+              padding: '14px 12px', background: C.bgCard,
+              borderRight: i < 3 ? `1px solid ${C.rule}` : 'none',
+            }}>
+              <div style={{ fontFamily: mono, fontSize: 9, color: C.muted, letterSpacing: '0.18em' }}>
+                {s.lab}
+              </div>
+              <div style={{
+                fontFamily: mono, fontSize: (s as { small?: boolean }).small ? 14 : 20, fontWeight: 600,
+                color: C.ink, letterSpacing: '-0.02em', marginTop: 8, lineHeight: 1.1,
+              }}>
+                {s.val}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Hero block — gauge left, verdict right */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 48,
+        padding: '28px 0 48px', alignItems: 'center',
+        borderTop: `1px dashed ${C.rule}`, borderBottom: `1px dashed ${C.rule}`,
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+          <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.22em' }}>
+            SCORE COMPOSITE · DÉCOMPOSITION
+          </div>
+          <Gauge value={score} size={320} stroke={20} decomposition={decomp} showNumeral={true} label={band} />
+          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {[
+              { lab: 'FOND.', v: row.score_fundamentals, max: 50, c: C.phosphor },
+              { lab: 'TECH.', v: row.score_technicals,   max: 25, c: C.phosphorSoft },
+              { lab: 'MOM.',  v: row.score_momentum,     max: 25, c: C.ember },
+            ].map(p => (
+              <div key={p.lab} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 2, background: p.c }} />
+                <span style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.12em' }}>
+                  {p.lab}
+                </span>
+                <span style={{ fontFamily: mono, fontSize: 12, color: C.ink, fontWeight: 600 }}>
+                  {Math.round(p.v * p.max / 100)}/{p.max}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* verdict editorial */}
+        <div>
+          <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.22em', marginBottom: 18 }}>
+            VERDICT ÉDITORIAL
+          </div>
+          <div style={{
+            fontFamily: serif, fontSize: 52, fontWeight: 500, lineHeight: 1,
+            color: tone, letterSpacing: '-0.03em', marginBottom: 18,
+          }}>
+            {verdict}.
+          </div>
+          <p style={{
+            fontFamily: serif, fontStyle: 'italic', fontSize: 19, lineHeight: 1.5,
+            color: C.inkDim, margin: 0, maxWidth: 580,
+          }}>
+            <span style={{
+              fontFamily: serif, fontStyle: 'normal', fontSize: 52, color: tone,
+              float: 'left', lineHeight: 0.8, marginRight: 8, marginTop: 8,
+            }}>«</span>
+            {verdictText}
+          </p>
+
+          {takeaways.length > 0 && (
+            <div style={{
+              marginTop: 28, padding: '20px 0', borderTop: `1px solid ${C.rule}`,
+              display: 'grid', gridTemplateColumns: `repeat(${takeaways.length}, 1fr)`, gap: 24,
+            }}>
+              {takeaways.map(t => (
+                <div key={t.idx}>
+                  <div style={{
+                    fontFamily: mono, fontSize: 10, color: t.tone, letterSpacing: '0.18em', marginBottom: 6,
+                  }}>
+                    {String(t.idx).padStart(2, '0')} · {t.tag}
+                  </div>
+                  <div style={{ fontFamily: sans, fontSize: 13, color: C.ink, lineHeight: 1.45 }}>
+                    {t.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ── §2 PillarsDeepDive — 3 columns with metrics ──────────────────────────────
+
+type PillarMetric = { lab: string; val: string; good: boolean | null }
+
+function PillarsDeepDive({ row }: { row: TickerScore }) {
+  const fin = row.financials
+  const mkt = row.market_data
+  const cur = mkt?.current_price
+
+  const fundMetrics: PillarMetric[] = [
+    { lab: 'Marge EBIT',     val: fmtPct(fin?.ebit_margin),     good: n(fin?.ebit_margin) ? fin!.ebit_margin! >= 15 : null },
+    { lab: 'ROIC',           val: fmtPct(fin?.roic),            good: n(fin?.roic) ? fin!.roic! >= 15 : null },
+    { lab: 'Croiss. CA 3a',  val: fmtSignPct(fin?.revenue_cagr_3y), good: n(fin?.revenue_cagr_3y) ? fin!.revenue_cagr_3y! >= 10 : null },
+    { lab: 'FCF Margin',     val: fmtPct(fin?.fcf_margin),      good: n(fin?.fcf_margin) ? fin!.fcf_margin! >= 10 : null },
+    { lab: 'ROE',            val: fmtPct(fin?.roe),             good: n(fin?.roe) ? fin!.roe! >= 15 : null },
+    { lab: 'Dette / EBITDA', val: n(fin?.net_debt_to_ebitda) ? `${fin!.net_debt_to_ebitda!.toFixed(1)}×` : '—', good: n(fin?.net_debt_to_ebitda) ? fin!.net_debt_to_ebitda! < 2 : null },
+  ]
+
+  const trendLabel = (() => {
+    if (!n(mkt?.sma_50) || !n(mkt?.sma_200) || !n(cur)) return '—'
+    if (cur! > mkt!.sma_50! && mkt!.sma_50! > mkt!.sma_200!) return 'Haussier'
+    if (cur! < mkt!.sma_50! && mkt!.sma_50! < mkt!.sma_200!) return 'Baissier'
+    return 'Mixte'
+  })()
+  const trendGood = trendLabel === 'Haussier'
+
+  const distMa50 = n(cur) && n(mkt?.sma_50)
+    ? ((cur! - mkt!.sma_50!) / mkt!.sma_50!) * 100
+    : null
+  const volRel = n(mkt?.volume) && n(mkt?.avg_volume_3m) && mkt!.avg_volume_3m! > 0
+    ? mkt!.volume! / mkt!.avg_volume_3m!
+    : null
+
+  const techMetrics: PillarMetric[] = [
+    { lab: 'RSI 14',        val: n(mkt?.rsi_14) ? mkt!.rsi_14!.toFixed(0) : '—', good: n(mkt?.rsi_14) ? mkt!.rsi_14! >= 30 && mkt!.rsi_14! <= 70 : null },
+    { lab: 'Tendance',      val: trendLabel, good: trendLabel !== '—' ? trendGood : null },
+    { lab: 'Distance SMA50',val: fmtSignPct(distMa50), good: n(distMa50) ? Math.abs(distMa50) < 10 : null },
+    { lab: 'Volume relatif',val: n(volRel) ? `${volRel.toFixed(2)}×` : '—', good: n(volRel) ? volRel >= 0.8 && volRel <= 2 : null },
+    { lab: 'Beta',          val: n(mkt?.beta) ? mkt!.beta!.toFixed(2) : '—', good: n(mkt?.beta) ? mkt!.beta! < 1.5 : null },
+    { lab: 'MACD',          val: n(mkt?.macd_histogram) ? (mkt!.macd_histogram! >= 0 ? 'Bullish' : 'Bearish') : '—', good: n(mkt?.macd_histogram) ? mkt!.macd_histogram! >= 0 : null },
+  ]
+
+  const momMetrics: PillarMetric[] = [
+    { lab: 'Perf 1M',   val: fmtSignPct(mkt?.momentum_1m),   good: n(mkt?.momentum_1m)  ? mkt!.momentum_1m!  >= 0 : null },
+    { lab: 'Perf 3M',   val: fmtSignPct(mkt?.momentum_3m),   good: n(mkt?.momentum_3m)  ? mkt!.momentum_3m!  >= 0 : null },
+    { lab: 'Perf 6M',   val: fmtSignPct(mkt?.momentum_6m),   good: n(mkt?.momentum_6m)  ? mkt!.momentum_6m!  >= 0 : null },
+    { lab: 'Perf 12M',  val: fmtSignPct(mkt?.momentum_12m),  good: n(mkt?.momentum_12m) ? mkt!.momentum_12m! >= 0 : null },
+    { lab: 'Vol. 1Y',   val: n(mkt?.beta) ? `${(mkt!.beta! * 16).toFixed(0)}%` : '—', good: null },
+    { lab: 'Drawdown',  val: n(mkt?.fifty_two_week_high) && n(cur)
+        ? `${(((cur! - mkt!.fifty_two_week_high!) / mkt!.fifty_two_week_high!) * 100).toFixed(0)}%`
+        : '—',
+      good: n(mkt?.fifty_two_week_high) && n(cur) ? cur! / mkt!.fifty_two_week_high! > 0.85 : null },
+  ]
+
+  const pillars = [
+    {
+      key: 'fund', label: 'FONDAMENTAUX', weight: 50, color: C.phosphor,
+      value: row.score_fundamentals, total: 50,
+      title: "Ce que l'entreprise vaut.",
+      thesis: row.one_liner ??
+        "Les fondamentaux décrivent la machine économique : marges, retour sur capital, capacité à générer du cash. Plus le score est haut, plus l'entreprise transforme efficacement son chiffre d'affaires en valeur.",
+      metrics: fundMetrics,
+    },
+    {
+      key: 'tech', label: 'TECHNIQUE', weight: 25, color: C.phosphorSoft,
+      value: row.score_technicals, total: 25,
+      title: 'Ce que le marché en pense.',
+      thesis: "RSI, tendance moyenne mobile, distance aux supports : ce pilier capte le rapport entre prix et signaux de marché. Il ne dit pas si l'entreprise est bonne, il dit si le moment d'entrée est cohérent.",
+      metrics: techMetrics,
+    },
+    {
+      key: 'mom', label: 'MOMENTUM', weight: 25, color: C.ember,
+      value: row.score_momentum, total: 25,
+      title: 'Où va le vent.',
+      thesis: "Performance sur 1, 3, 6, 12 mois. Le momentum mesure la pente du titre — un score élevé indique une dynamique en place. Attention à la lecture isolée : un momentum fort sans fondamentaux est un signal de surchauffe.",
+      metrics: momMetrics,
+    },
+  ]
+
+  return (
+    <section id="pillars" style={{ padding: '60px 40px', maxWidth: 1320, margin: '0 auto' }}>
+      <div style={{
+        borderTop: `2px solid ${C.ink}`, borderBottom: `1px solid ${C.rule}`,
+        padding: '18px 0 14px', marginBottom: 28,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12,
+      }}>
+        <div>
+          <div style={{ fontFamily: mono, fontSize: 10, letterSpacing: '0.3em', color: C.phosphor, marginBottom: 6 }}>
+            § 01 · TROIS PILIERS
+          </div>
+          <h2 style={{
+            fontFamily: serif, fontSize: 38, fontWeight: 500,
+            letterSpacing: '-0.025em', color: C.ink, margin: 0, lineHeight: 1,
+          }}>
+            <span style={{ fontFamily: mono, fontSize: 32 }}>{Math.round(row.score_total)}</span> points — <span style={{ fontStyle: 'italic', color: C.phosphor }}>décomposés.</span>
+          </h2>
+        </div>
+        <div style={{ fontFamily: mono, fontSize: 11, color: C.muted, textAlign: 'right', letterSpacing: '0.1em' }}>
+          QUALITY 50% · TECHNICAL 25%<br/>MOMENTUM 25%
+        </div>
+      </div>
+
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+        borderBottom: `1px solid ${C.rule}`,
+      }}>
+        {pillars.map((p, i) => {
+          const pillarPct = (p.value * 100) / (p.total * 4)
+          return (
+          <div key={p.key} style={{
+            padding: '28px 24px',
+            borderRight: i < 2 ? `1px solid ${C.rule}` : 'none',
+            display: 'flex', flexDirection: 'column', gap: 18,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: mono, fontSize: 10, color: p.color, letterSpacing: '0.22em', fontWeight: 600 }}>
+                  {p.label}
+                </div>
+                <div style={{ fontFamily: serif, fontSize: 22, fontWeight: 500, color: C.ink, marginTop: 8, letterSpacing: '-0.02em' }}>
+                  {p.title}
+                </div>
+                <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.1em', marginTop: 4 }}>
+                  PONDÉRATION {p.weight}%
+                </div>
+              </div>
+              <Gauge value={p.value} size={68} stroke={6} showNumeral={false} />
+            </div>
+
+            <div style={{
+              padding: '14px 0', borderTop: `1px dashed ${C.rule}`, borderBottom: `1px dashed ${C.rule}`,
+              display: 'flex', alignItems: 'baseline', gap: 10,
+            }}>
+              <span style={{
+                fontFamily: mono, fontSize: 48, fontWeight: 600,
+                color: p.color, letterSpacing: '-0.04em', lineHeight: 1,
+              }}>
+                {Math.round(p.value * p.total / 100)}
+              </span>
+              <span style={{ fontFamily: mono, fontSize: 20, color: C.muted, fontWeight: 500 }}>
+                /{p.total}
+              </span>
+              <span style={{ marginLeft: 'auto', fontFamily: mono, fontSize: 11, color: p.color, letterSpacing: '0.14em' }}>
+                {Math.round(p.value)}% UTILISÉS
+              </span>
+              {/* keep pillarPct referenced */}
+              <span style={{ display: 'none' }}>{pillarPct}</span>
+            </div>
+
+            <p style={{
+              fontFamily: serif, fontStyle: 'italic', fontSize: 14.5, lineHeight: 1.5,
+              color: C.inkDim, margin: 0,
+            }}>
+              <span style={{ color: p.color, fontStyle: 'normal', marginRight: 6 }}>›</span>
+              {p.thesis}
+            </p>
+
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: 0,
+              border: `1px solid ${C.rule}`, borderRadius: 8, overflow: 'hidden',
+            }}>
+              {p.metrics.map((m, j) => (
+                <div key={m.lab} style={{
+                  display: 'grid', gridTemplateColumns: '1fr auto',
+                  padding: '10px 12px', gap: 10, alignItems: 'baseline',
+                  background: j % 2 === 0 ? C.bgCard : 'transparent',
+                  borderBottom: j < p.metrics.length - 1 ? `1px solid ${C.rule}` : 'none',
+                }}>
+                  <div style={{ fontFamily: sans, fontSize: 12, color: C.inkDim }}>{m.lab}</div>
+                  <div style={{
+                    fontFamily: mono, fontSize: 13, fontWeight: 600,
+                    color: m.good === null ? C.muted : (m.good ? C.ink : C.ember),
+                    letterSpacing: '-0.01em', textAlign: 'right',
+                  }}>
+                    {m.val}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )})}
+      </div>
+
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
+        padding: '12px 0', fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.1em',
+      }}>
+        <span>SOURCES : FUNDAMENTALS · MARKET DATA · CACHE 4H</span>
+        <span>MÉTHODE INSPIRÉE DE BRIAN FEROLDI</span>
+      </div>
+    </section>
+  )
+}
+
+// ── §3 ScoreHistory — chart with real score_history data ─────────────────────
+
+function ScoreHistorySection({ history, currentScore }: {
+  history: ScoreHistory[]; currentScore: number
+}) {
+  if (history.length < 2) {
+    return (
+      <section id="history" style={{ padding: '40px 40px 60px', maxWidth: 1320, margin: '0 auto' }}>
+        <div style={{
+          borderTop: `2px solid ${C.ink}`, borderBottom: `1px solid ${C.rule}`,
+          padding: '18px 0 14px',
+        }}>
+          <div style={{ fontFamily: mono, fontSize: 10, letterSpacing: '0.3em', color: C.phosphor, marginBottom: 6 }}>
+            § 02 · HISTORIQUE DU SCORE
+          </div>
+          <h2 style={{ fontFamily: serif, fontSize: 32, fontWeight: 500, letterSpacing: '-0.02em', color: C.ink, margin: 0 }}>
+            Pas encore <span style={{ fontStyle: 'italic', color: C.phosphor }}>d&apos;historique.</span>
+          </h2>
+          <p style={{ fontFamily: serif, fontStyle: 'italic', fontSize: 15, color: C.inkDim, marginTop: 12 }}>
+            Le score est recalculé toutes les nuits. Repassez demain pour voir la première variation.
+          </p>
+        </div>
+      </section>
+    )
+  }
+
+  const points = history.map(h => ({ score: h.score, iso: h.scored_at }))
+  // Use currentScore for the latest point to keep alignment with the masthead
+  const seriesWithCurrent = [...points.slice(0, -1), { score: currentScore, iso: points[points.length - 1].iso }]
+  const W = 1100, H = 280, P = { l: 50, r: 30, t: 20, b: 36 }
+  const ix = (i: number) => P.l + (i / Math.max(1, seriesWithCurrent.length - 1)) * (W - P.l - P.r)
+  const iy = (s: number) => P.t + (1 - s / 100) * (H - P.t - P.b)
+  const path = seriesWithCurrent.map((p, i) => `${i === 0 ? 'M' : 'L'} ${ix(i)} ${iy(p.score)}`).join(' ')
+  const area = path + ` L ${ix(seriesWithCurrent.length - 1)} ${H - P.b} L ${ix(0)} ${H - P.b} Z`
+
+  const bands = [
+    { min: 75, max: 100, c: C.phosphor,     lab: 'EXCELLENT' },
+    { min: 60, max: 75,  c: C.phosphorSoft, lab: 'BON' },
+    { min: 45, max: 60,  c: C.ember,        lab: 'NEUTRE' },
+    { min: 30, max: 45,  c: '#E58A4E',      lab: 'ATTENTION' },
+    { min: 0,  max: 30,  c: C.sanguine,     lab: 'RISQUÉ' },
+  ]
+
+  const firstScore = Math.round(seriesWithCurrent[0].score)
+  const lastScore = Math.round(seriesWithCurrent[seriesWithCurrent.length - 1].score)
+  const delta = lastScore - firstScore
+  const firstDate = new Date(seriesWithCurrent[0].iso)
+  const lastDate = new Date(seriesWithCurrent[seriesWithCurrent.length - 1].iso)
+  const days = Math.max(1, Math.round((lastDate.getTime() - firstDate.getTime()) / 86_400_000))
+  const periodLabel = days >= 365 ? `${Math.round(days / 365)} an${days >= 730 ? 's' : ''}`
+    : days >= 30 ? `${Math.round(days / 30)} mois`
+    : `${days} jours`
+
+  return (
+    <section id="history" style={{ padding: '40px 40px 60px', maxWidth: 1320, margin: '0 auto' }}>
+      <div style={{
+        borderTop: `2px solid ${C.ink}`, borderBottom: `1px solid ${C.rule}`,
+        padding: '18px 0 14px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12,
+      }}>
+        <div>
+          <div style={{ fontFamily: mono, fontSize: 10, letterSpacing: '0.3em', color: C.phosphor, marginBottom: 6 }}>
+            § 02 · HISTORIQUE DU SCORE
+          </div>
+          <h2 style={{
+            fontFamily: serif, fontSize: 38, fontWeight: 500,
+            letterSpacing: '-0.025em', color: C.ink, margin: 0, lineHeight: 1,
+          }}>
+            <span style={{ fontFamily: mono, fontSize: 32 }}>{firstScore}</span> →
+            <span style={{ fontFamily: mono, fontSize: 32, color: C.phosphor }}> {lastScore}</span>
+            &nbsp;sur {periodLabel}. <span style={{ fontStyle: 'italic', color: delta >= 0 ? C.phosphor : C.sanguine }}>
+              {delta >= 0 ? '+' : ''}{delta} points.
+            </span>
+          </h2>
+        </div>
+        <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.18em' }}>
+          {seriesWithCurrent.length} POINTS · 1/JOUR
+        </div>
+      </div>
+
+      <div style={{
+        background: C.bgCard, border: `1px solid ${C.rule}`, borderRadius: 16,
+        padding: '28px 28px 22px', marginTop: 16,
+      }}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+          <defs>
+            <linearGradient id="score-area" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"  stopColor={C.phosphor} stopOpacity="0.25" />
+              <stop offset="100%" stopColor={C.phosphor} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {[100, 75, 60, 45, 30, 0].map(y => (
+            <g key={y}>
+              <line x1={P.l} y1={iy(y)} x2={W - P.r} y2={iy(y)}
+                stroke={y === 0 || y === 100 ? C.rule : C.ruleDim}
+                strokeDasharray={y === 100 || y === 0 ? '0' : '2 4'} />
+              <text x={P.l - 8} y={iy(y) + 3} textAnchor="end"
+                style={{ fontFamily: mono, fontSize: 10, fill: C.muted }}>
+                {y}
+              </text>
+            </g>
+          ))}
+
+          {bands.map(b => (
+            <text key={b.lab} x={W - P.r - 6} y={iy((b.min + b.max) / 2) + 3} textAnchor="end"
+              style={{ fontFamily: mono, fontSize: 9, fill: b.c, letterSpacing: '0.16em', opacity: 0.5 }}>
+              {b.lab}
+            </text>
+          ))}
+
+          <path d={area} fill="url(#score-area)" />
+          <path d={path} fill="none" stroke={toneFor(lastScore)} strokeWidth="2" strokeLinecap="round" />
+
+          <circle cx={ix(seriesWithCurrent.length - 1)} cy={iy(lastScore)} r="6"
+            fill={toneFor(lastScore)} opacity="0.3" />
+          <circle cx={ix(seriesWithCurrent.length - 1)} cy={iy(lastScore)} r="3"
+            fill={toneFor(lastScore)} />
+        </svg>
+      </div>
+
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
+        padding: '12px 0', fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.1em',
+      }}>
+        <span>1 POINT PAR RECALCUL · RANGE COMPLET DISPONIBLE</span>
+        <span>DU {dateFmt(seriesWithCurrent[0].iso)} AU {dateFmt(seriesWithCurrent[seriesWithCurrent.length - 1].iso)}</span>
+      </div>
+    </section>
+  )
+}
+
+// ── §4 PeersComparison — same sector top 5 ───────────────────────────────────
+
+function PeersComparison({ row, peers }: { row: TickerScore; peers: PeerRow[] }) {
+  if (peers.length === 0) {
+    return null
+  }
+
+  const all: (PeerRow & { isYou?: boolean })[] = [
+    {
+      ticker: row.ticker,
+      company_name: row.company_name,
+      score_total: row.score_total,
+      score_fundamentals: row.score_fundamentals,
+      score_technicals: row.score_technicals,
+      score_momentum: row.score_momentum,
+      market_cap: row.market_cap,
+      sector: row.sector,
+      financials: row.financials ? { pe_ttm: row.financials.pe_ttm, revenue_cagr_3y: row.financials.revenue_cagr_3y } : null,
+      isYou: true,
+    },
+    ...peers,
+  ]
+
+  const sorted = [...all].sort((a, b) => b.score_total - a.score_total)
+  const rank = sorted.findIndex(p => p.isYou) + 1
+
+  return (
+    <section id="peers" style={{ padding: '40px 40px 60px', maxWidth: 1320, margin: '0 auto' }}>
+      <div style={{
+        borderTop: `2px solid ${C.ink}`, borderBottom: `1px solid ${C.rule}`,
+        padding: '18px 0 14px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12,
+      }}>
+        <div>
+          <div style={{ fontFamily: mono, fontSize: 10, letterSpacing: '0.3em', color: C.phosphor, marginBottom: 6 }}>
+            § 03 · COMPARABLES SECTORIELLES
+          </div>
+          <h2 style={{
+            fontFamily: serif, fontSize: 38, fontWeight: 500,
+            letterSpacing: '-0.025em', color: C.ink, margin: 0, lineHeight: 1,
+          }}>
+            <span style={{ fontStyle: 'italic', color: C.phosphor }}>{row.ticker}</span> face à {peers.length} pair{peers.length > 1 ? 's' : ''} — rang
+            <span style={{ fontFamily: mono, fontSize: 30, color: C.phosphor, padding: '0 6px' }}>{rank}</span>
+            sur {sorted.length}.
+          </h2>
+        </div>
+        <div style={{ fontFamily: mono, fontSize: 11, color: C.muted, textAlign: 'right', letterSpacing: '0.1em' }}>
+          UNIVERS : {(row.sector ?? '').toUpperCase()}<br/>
+          PAIRS RETENUS : {peers.length}
+        </div>
+      </div>
+
+      <div>
+        <div style={{
+          display: 'grid', gridTemplateColumns: '60px 1.4fr 90px 1fr 100px 100px 110px',
+          padding: '14px 0', gap: 16,
+          fontFamily: mono, fontSize: 9, letterSpacing: '0.2em', color: C.muted,
+          borderBottom: `1px solid ${C.rule}`,
+        }}>
+          <span>GAUGE</span>
+          <span>TITRE</span>
+          <span style={{ textAlign: 'right' }}>SCORE</span>
+          <span>F · T · M</span>
+          <span style={{ textAlign: 'right' }}>CAP.</span>
+          <span style={{ textAlign: 'right' }}>PER</span>
+          <span style={{ textAlign: 'right' }}>CROISS. CA</span>
+        </div>
+
+        {sorted.map((p, i) => (
+          <div key={p.ticker} style={{
+            display: 'grid', gridTemplateColumns: '60px 1.4fr 90px 1fr 100px 100px 110px',
+            padding: '18px 0', gap: 16, alignItems: 'center',
+            borderBottom: i === sorted.length - 1 ? 'none' : `1px solid ${C.rule}`,
+            background: p.isYou ? `${C.phosphor}06` : 'transparent',
+            position: 'relative',
+          }}>
+            {p.isYou && (
+              <span style={{
+                position: 'absolute', left: -10, top: '50%', transform: 'translateY(-50%)',
+                width: 4, height: 32, background: C.phosphor, borderRadius: 2,
+              }} />
+            )}
+            <Gauge value={p.score_total} size={48} stroke={5} showNumeral={false} />
+            <div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                {p.isYou ? (
+                  <span style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, letterSpacing: '-0.02em' }}>
+                    {p.ticker}
+                  </span>
+                ) : (
+                  <Link href={`/ticker/${p.ticker}`} style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, letterSpacing: '-0.02em', textDecoration: 'none' }}>
+                    {p.ticker}
+                  </Link>
+                )}
+                {p.isYou && (
+                  <span style={{
+                    fontFamily: mono, fontSize: 9, color: C.phosphor, letterSpacing: '0.18em',
+                    border: `1px solid ${C.phosphor}60`, padding: '2px 6px', borderRadius: 3,
+                  }}>
+                    VOUS LISEZ
+                  </span>
+                )}
+              </div>
+              <div style={{ fontFamily: sans, fontSize: 13, color: C.inkDim, marginTop: 2 }}>
+                {p.company_name ?? '—'}
+              </div>
+            </div>
+            <div style={{
+              textAlign: 'right',
+              fontFamily: mono, fontSize: 26, fontWeight: 600,
+              color: toneFor(p.score_total), letterSpacing: '-0.04em', lineHeight: 1,
+            }}>
+              {Math.round(p.score_total)}
+            </div>
+            <div style={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', background: C.rule }}>
+              <span style={{ width: `${(p.score_fundamentals / 100) * (100 / 3)}%`, background: C.phosphor }} />
+              <span style={{ width: `${(p.score_technicals  / 100) * (100 / 3)}%`, background: C.phosphorSoft }} />
+              <span style={{ width: `${(p.score_momentum    / 100) * (100 / 3)}%`, background: C.ember }} />
+            </div>
+            <div style={{ textAlign: 'right', fontFamily: mono, fontSize: 13, color: C.ink }}>
+              {fmtCap(p.market_cap)}
+            </div>
+            <div style={{ textAlign: 'right', fontFamily: mono, fontSize: 13, color: C.inkDim }}>
+              {n(p.financials?.pe_ttm) && p.financials!.pe_ttm! > 0 ? `${p.financials!.pe_ttm!.toFixed(1)}×` : '—'}
+            </div>
+            <div style={{
+              textAlign: 'right', fontFamily: mono, fontSize: 13, fontWeight: 600,
+              color: n(p.financials?.revenue_cagr_3y)
+                ? (p.financials!.revenue_cagr_3y! < 0 ? C.sanguine : C.phosphor)
+                : C.muted,
+            }}>
+              {fmtSignPct(p.financials?.revenue_cagr_3y, 0)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// ── §5 EventsTimeline — derived from score_history big moves ─────────────────
+
+type DerivedEvent = { iso: string; score: number; prev: number; delta: number }
+
+function deriveEvents(history: ScoreHistory[]): DerivedEvent[] {
+  if (history.length < 2) return []
+  const events: DerivedEvent[] = []
+  for (let i = 1; i < history.length; i++) {
+    const delta = history[i].score - history[i - 1].score
+    if (Math.abs(delta) >= 3) {
+      events.push({
+        iso: history[i].scored_at,
+        score: history[i].score,
+        prev: history[i - 1].score,
+        delta,
+      })
+    }
+  }
+  // Most recent first, max 5
+  return events.reverse().slice(0, 5)
+}
+
+function EventsTimeline({ ticker, history }: { ticker: string; history: ScoreHistory[] }) {
+  const events = deriveEvents(history)
+
+  return (
+    <section id="events" style={{ padding: '40px 40px 60px', maxWidth: 1320, margin: '0 auto' }}>
+      <div style={{
+        borderTop: `2px solid ${C.ink}`, borderBottom: `1px solid ${C.rule}`,
+        padding: '18px 0 14px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+      }}>
+        <div>
+          <div style={{ fontFamily: mono, fontSize: 10, letterSpacing: '0.3em', color: C.phosphor, marginBottom: 6 }}>
+            § 04 · MOUVEMENTS RÉCENTS
+          </div>
+          <h2 style={{
+            fontFamily: serif, fontSize: 38, fontWeight: 500,
+            letterSpacing: '-0.025em', color: C.ink, margin: 0, lineHeight: 1,
+          }}>
+            {events.length > 0
+              ? <>Cinq variations <span style={{ fontStyle: 'italic', color: C.phosphor }}>marquantes</span>.</>
+              : <>Un score <span style={{ fontStyle: 'italic', color: C.phosphor }}>stable</span>.</>
+            }
+          </h2>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 40, paddingTop: 28 }}>
+        <div>
+          <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.22em', marginBottom: 14 }}>
+            HISTORIQUE RÉCENT
+          </div>
+          {events.length === 0 ? (
+            <p style={{ fontFamily: serif, fontStyle: 'italic', fontSize: 16, color: C.inkDim, lineHeight: 1.5 }}>
+              Pas encore de variation supérieure à 3 points sur la fenêtre d&apos;observation. Le titre traverse une phase calme — utile à savoir, peu d&apos;urgence.
+            </p>
+          ) : (
+            <div style={{ position: 'relative', paddingLeft: 24 }}>
+              <div style={{
+                position: 'absolute', left: 6, top: 4, bottom: 4, width: 1,
+                background: `linear-gradient(to bottom, ${C.phosphor}, ${C.rule})`,
+              }} />
+              {events.map((e, i) => {
+                const up = e.delta > 0
+                const tone = up ? C.phosphor : C.sanguine
+                return (
+                  <div key={i} style={{
+                    position: 'relative',
+                    paddingBottom: i === events.length - 1 ? 0 : 22,
+                  }}>
+                    <span style={{
+                      position: 'absolute', left: -22, top: 4,
+                      width: 13, height: 13, borderRadius: '50%',
+                      background: C.bg, border: `2px solid ${tone}`,
+                      boxShadow: i === 0 ? `0 0 10px ${tone}80` : 'none',
+                    }} />
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
+                      <span style={{ fontFamily: mono, fontSize: 11, color: C.ink, fontWeight: 600, letterSpacing: '0.08em' }}>
+                        {dateFmt(e.iso)}
+                      </span>
+                      <span style={{ fontFamily: mono, fontSize: 9, color: tone, letterSpacing: '0.18em', fontWeight: 600 }}>
+                        {up ? 'HAUSSE' : 'BAISSE'}
+                      </span>
+                      <span style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.1em', marginLeft: 'auto' }}>
+                        {timeAgo(e.iso).toUpperCase()}
+                      </span>
+                    </div>
+                    <div style={{ fontFamily: serif, fontSize: 18, fontWeight: 500, color: C.ink, letterSpacing: '-0.01em', marginBottom: 6 }}>
+                      Score recalculé
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                      <span style={{
+                        fontFamily: mono, fontSize: 11, fontWeight: 600,
+                        color: tone,
+                      }}>
+                        {up ? '▲' : '▼'} {Math.abs(e.delta).toFixed(0)} pts ({Math.round(e.prev)} → {Math.round(e.score)})
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Right column — alert CTA */}
+        <div>
+          <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.22em', marginBottom: 14 }}>
+            ALERTES
+          </div>
+          <div style={{
+            padding: '20px 22px',
+            background: `${C.phosphor}06`, border: `1px solid ${C.phosphor}30`,
+            borderRadius: 12,
+          }}>
+            <div style={{ fontFamily: mono, fontSize: 10, color: C.phosphor, letterSpacing: '0.2em', marginBottom: 10 }}>
+              🔔 PROCHAINE PUBLICATION
+            </div>
+            <div style={{ fontFamily: serif, fontSize: 18, color: C.ink, lineHeight: 1.35, fontWeight: 500 }}>
+              Soyez prévenu si le score de <span style={{ color: C.phosphor, fontFamily: mono }}>{ticker}</span> franchit <span style={{ color: C.phosphor, fontFamily: mono }}>80</span> ou passe sous <span style={{ color: C.ember, fontFamily: mono }}>70</span>.
+            </div>
+            <Link href="/alerts" style={{
+              display: 'inline-block', marginTop: 16,
+              padding: '9px 18px', background: C.phosphor, color: C.bg,
+              fontFamily: sans, fontSize: 13, fontWeight: 600,
+              borderRadius: 8, textDecoration: 'none',
+            }}>
+              Configurer une alerte →
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ── §6 NextRead — 3 related tickers same sector ──────────────────────────────
+
+function NextRead({ peers }: { peers: PeerRow[] }) {
+  if (peers.length === 0) return null
+  const next = peers.slice(0, 3)
+  return (
+    <section style={{ padding: '40px 40px 60px', maxWidth: 1320, margin: '0 auto' }}>
+      <div style={{
+        borderTop: `2px solid ${C.ink}`,
+        padding: '18px 0 14px',
+      }}>
+        <div style={{ fontFamily: mono, fontSize: 10, letterSpacing: '0.3em', color: C.phosphor, marginBottom: 6 }}>
+          § 05 · À LIRE ENSUITE
+        </div>
+        <h2 style={{
+          fontFamily: serif, fontSize: 32, fontWeight: 500,
+          letterSpacing: '-0.025em', color: C.ink, margin: 0, lineHeight: 1,
+        }}>
+          Trois dossiers <span style={{ fontStyle: 'italic', color: C.phosphor }}>connexes</span>.
+        </h2>
+      </div>
+
+      <div style={{
+        display: 'grid', gridTemplateColumns: `repeat(${next.length}, 1fr)`, gap: 0,
+        borderBottom: `1px solid ${C.rule}`, borderTop: `1px solid ${C.rule}`,
+        marginTop: 20,
+      }}>
+        {next.map((n2, i) => {
+          const tone = toneFor(n2.score_total)
+          return (
+            <Link href={`/ticker/${n2.ticker}`} key={n2.ticker} style={{
+              padding: '24px 24px',
+              borderRight: i < next.length - 1 ? `1px solid ${C.rule}` : 'none',
+              display: 'flex', alignItems: 'center', gap: 18, textDecoration: 'none',
+            }}>
+              <Gauge value={n2.score_total} size={56} stroke={6} showNumeral={false} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: serif, fontSize: 22, fontWeight: 600, color: C.ink, letterSpacing: '-0.02em' }}>
+                  {n2.ticker} <span style={{
+                    fontFamily: mono, fontSize: 18, color: tone, fontWeight: 600, marginLeft: 8,
+                  }}>{Math.round(n2.score_total)}</span>
+                </div>
+                <div style={{ fontFamily: serif, fontStyle: 'italic', fontSize: 14, color: C.inkDim, marginTop: 4 }}>
+                  Même secteur — {n2.company_name ?? n2.ticker}.
+                </div>
+              </div>
+              <span style={{ fontFamily: mono, fontSize: 14, color: C.phosphor }}>→</span>
+            </Link>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+// ── Main Page ────────────────────────────────────────────────────────────────
 
 export default async function TickerPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params
@@ -866,22 +1207,19 @@ export default async function TickerPage({ params }: { params: Promise<{ symbol:
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   const today = new Date().toISOString().slice(0, 10)
 
-  // Fetch ticker data (needed for both auth and guest)
   const { data: tickerData, error: tickerError } = await supabase
     .from('ticker_scores').select('*').eq('ticker', ticker).single()
 
   if (tickerError || !tickerData) notFound()
+  const row = tickerData as TickerScore
 
-  // Non-authenticated: show teaser
   if (!user) {
-    return <TeaserBlock ticker={ticker} row={tickerData as TickerScore} />
+    return <TeaserBlock ticker={ticker} row={row} />
   }
 
-  const [{ data, error }, inWatchlistResult, historyResult, profileResult] = await Promise.all([
-    Promise.resolve({ data: tickerData, error: null }),
+  const [inWatchlistResult, historyResult, profileResult, peersResult] = await Promise.all([
     (async () => {
       try {
         const { data: wl } = await supabase.from('watchlists').select('id').eq('user_id', user.id).maybeSingle()
@@ -892,23 +1230,27 @@ export default async function TickerPage({ params }: { params: Promise<{ symbol:
       } catch { return false }
     })(),
     supabase.from('score_history').select('score, confidence, scored_at')
-      .eq('ticker', ticker).order('scored_at', { ascending: true }).limit(30),
+      .eq('ticker', ticker).order('scored_at', { ascending: true }).limit(60),
     supabase.from('profiles')
       .select('plan, analyses_today, last_analysis_date')
       .eq('id', user.id)
       .maybeSingle(),
+    row.sector
+      ? supabase.from('ticker_scores')
+          .select('ticker, company_name, score_total, score_fundamentals, score_technicals, score_momentum, market_cap, sector, financials')
+          .eq('sector', row.sector)
+          .neq('ticker', ticker)
+          .order('score_total', { ascending: false })
+          .limit(5)
+      : Promise.resolve({ data: [] as PeerRow[] }),
   ])
 
-  if (error || !data) notFound()
-
-  // ── Freemium gate ──
   const profile = profileResult.data
   const isPremium = (profile?.plan ?? '').toLowerCase() === 'premium'
   const isToday = profile?.last_analysis_date === today
   const usedToday = isToday ? (profile?.analyses_today ?? 0) : 0
 
   if (!isPremium && usedToday >= DAILY_LIMIT) {
-    const row = data as TickerScore
     return (
       <PaywallBlock
         ticker={ticker}
@@ -921,7 +1263,6 @@ export default async function TickerPage({ params }: { params: Promise<{ symbol:
     )
   }
 
-  // Incrémenter le compteur (utilisateur free seulement)
   if (!isPremium) {
     await supabase.from('profiles').upsert({
       id: user.id,
@@ -931,347 +1272,45 @@ export default async function TickerPage({ params }: { params: Promise<{ symbol:
     }, { onConflict: 'id' })
   }
 
-  const remaining = isPremium ? null : DAILY_LIMIT - usedToday - 1
-
-  const row = data as TickerScore
-  const fin = row.financials
-  const mkt = row.market_data
-  const imp = row.importance_items || []
-  const history = (historyResult.data || []) as ScoreHistory[]
-  const cur = mkt?.current_price
-  const cur52 = n(mkt?.fifty_two_week_low) && n(mkt?.fifty_two_week_high) && n(cur)
-
-  const posFactors = imp.filter(i => i.direction === 'positive').slice(0, 3)
-  const negFactors = imp.filter(i => i.direction === 'negative').slice(0, 3)
-  const currency = row.currency || ''
-
-  // Snapshot pills
-  const snapPills = [
-    n(fin?.ebit_margin) && { label: 'Marge EBIT', value: `${fin!.ebit_margin!.toFixed(1)}%`, color: fin!.ebit_margin! >= 15 ? 'text-emerald-400' : fin!.ebit_margin! < 5 ? 'text-rose-400' : 'text-zinc-200' },
-    n(fin?.roe) && { label: 'ROE', value: `${fin!.roe!.toFixed(1)}%`, color: fin!.roe! >= 15 ? 'text-emerald-400' : fin!.roe! < 5 ? 'text-rose-400' : 'text-zinc-200' },
-    n(fin?.fcf_yield_ttm) && { label: 'FCF Yield', value: `${fin!.fcf_yield_ttm!.toFixed(1)}%`, color: fin!.fcf_yield_ttm! >= 6 ? 'text-emerald-400' : fin!.fcf_yield_ttm! < 1 ? 'text-rose-400' : 'text-zinc-200' },
-    n(fin?.pe_ttm) && fin!.pe_ttm! > 0 && { label: 'P/E', value: `${fin!.pe_ttm!.toFixed(1)}`, color: fin!.pe_ttm! <= 15 ? 'text-emerald-400' : fin!.pe_ttm! >= 50 ? 'text-rose-400' : 'text-zinc-200' },
-    n(fin?.net_debt_to_ebitda) && { label: 'Dette/EBITDA', value: `${fin!.net_debt_to_ebitda!.toFixed(1)}x`, color: fin!.net_debt_to_ebitda! < 1 ? 'text-emerald-400' : fin!.net_debt_to_ebitda! > 3 ? 'text-rose-400' : 'text-zinc-200' },
-  ].filter(Boolean) as { label: string; value: string; color: string }[]
+  const inWatchlist = inWatchlistResult
+  const history = (historyResult.data ?? []) as ScoreHistory[]
+  const peers = (peersResult.data ?? []) as PeerRow[]
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] text-white">
+    <div className="min-h-screen" style={{ background: C.bg, color: C.ink }}>
       <AppNav activePath="" />
+      <DetailsSubnav row={row} ticker={ticker} inWatchlist={inWatchlist} />
 
-      <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">
-        {/* Back */}
-        <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-white transition-colors">
-          <span>←</span> Screener
-        </Link>
+      <main>
+        <DetailsMasthead row={row} ticker={ticker} history={history} />
+        <PillarsDeepDive row={row} />
+        <ScoreHistorySection history={history} currentScore={row.score_total} />
+        <PeersComparison row={row} peers={peers} />
+        <EventsTimeline ticker={ticker} history={history} />
+        <NextRead peers={peers} />
 
-        {/* ── Header ── */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-1 flex-wrap">
-              <h1 className="text-2xl font-bold truncate">{row.company_name || ticker}</h1>
-              <span className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-white/[0.06] text-zinc-300 shrink-0">{ticker}</span>
-              <WatchlistButton ticker={ticker} initialInWatchlist={inWatchlistResult} size="lg" />
-            </div>
-            <div className="flex items-center gap-2 text-sm text-zinc-500 flex-wrap">
-              {row.sector && <span>{row.sector}</span>}
-              {row.sector && row.exchange && <span>·</span>}
-              {row.exchange && <span>{row.exchange}</span>}
-              {row.market_cap && <><span>·</span><span>{fmtCap(row.market_cap)} {currency}</span></>}
-            </div>
-            {row.one_liner && (
-              <p className="mt-2 text-sm text-zinc-400 max-w-lg italic">&ldquo;{row.one_liner}&rdquo;</p>
-            )}
-            {row.moat_tags && row.moat_tags.length > 0 && (
-              <div className="flex gap-1.5 mt-2 flex-wrap">
-                {row.moat_tags.map(tag => (
-                  <span key={tag} className="px-2 py-0.5 rounded-full text-xs bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">{tag}</span>
-                ))}
-              </div>
-            )}
+        <footer style={{
+          borderTop: `1px solid ${C.rule}`,
+          padding: '24px 40px',
+          maxWidth: 1320,
+          margin: '40px auto 0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontFamily: mono,
+          fontSize: 10,
+          color: C.muted,
+          letterSpacing: '0.14em',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}>
+          <span>ALPHABRIEF · DOSSIER {ticker} · NE CONSTITUE PAS UN CONSEIL EN INVESTISSEMENT</span>
+          <div style={{ display: 'flex', gap: 20 }}>
+            <Link href="/methode" style={{ color: 'inherit', textDecoration: 'none' }}>MÉTHODE</Link>
+            <Link href="/pricing" style={{ color: 'inherit', textDecoration: 'none' }}>PRICING</Link>
+            <Link href="/alerts" style={{ color: 'inherit', textDecoration: 'none' }}>ALERTES</Link>
           </div>
-          {/* Score badge */}
-          <div className={`flex flex-col items-center justify-center w-24 h-24 rounded-2xl border ${scoreBgBorder(row.score_total)} shrink-0`}>
-            <span className={`text-4xl font-black tabular-nums ${scoreTwColor(row.score_total)}`}>{row.score_total}</span>
-            <span className="text-[10px] uppercase tracking-wider text-zinc-500 mt-0.5">{row.score_label || 'Score'}</span>
-          </div>
-        </div>
-
-        {/* ── Snapshot bar ── */}
-        <div className={`rounded-xl border p-4 flex flex-wrap gap-x-6 gap-y-3 items-center ${scoreBgBorder(row.score_total)}`}>
-          {/* Price */}
-          {n(cur) && (
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold tabular-nums">{cur.toFixed(2)}</span>
-              <span className="text-zinc-500 text-sm">{currency}</span>
-              {n(mkt?.change_pct) && (
-                <span className={`text-sm font-semibold tabular-nums ${mkt!.change_pct! >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {fmtSign(mkt!.change_pct!, '%')}
-                </span>
-              )}
-            </div>
-          )}
-          {snapPills.length > 0 && <div className="w-px h-6 bg-white/[0.08] shrink-0 hidden sm:block" />}
-          {snapPills.map(p => (
-            <div key={p.label} className="flex flex-col items-center">
-              <span className="text-[0.6rem] uppercase tracking-wider text-zinc-600">{p.label}</span>
-              <span className={`text-sm font-bold tabular-nums ${p.color}`}>{p.value}</span>
-            </div>
-          ))}
-          <div className="ml-auto flex flex-col items-end gap-1">
-            {(() => {
-              const { label, stale } = timeAgo(row.computed_at)
-              return (
-                <span className={`text-[0.65rem] font-medium ${stale ? 'text-rose-500' : 'text-zinc-600'}`}
-                  title={row.computed_at ?? ''}>
-                  {stale ? '⚠ ' : ''}Mis à jour il y a {label}
-                </span>
-              )
-            })()}
-            {remaining !== null && (
-              <span className={`text-[0.65rem] font-semibold tabular-nums ${remaining === 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
-                {remaining === 0 ? 'Dernière analyse gratuite utilisée' : `${remaining} analyse${remaining > 1 ? 's' : ''} gratuite${remaining > 1 ? 's' : ''} restante${remaining > 1 ? 's' : ''}`}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* ── Positive / Negative factor breakdown ── */}
-        {(posFactors.length > 0 || negFactors.length > 0) && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-              <div className="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500 mb-3">Ce qui tire le score ▲</div>
-              {posFactors.length > 0 ? posFactors.map((f, i) => (
-                <div key={i} className="flex items-start gap-2 py-2 border-b border-white/[0.04] last:border-0">
-                  <span className="text-emerald-400 font-black text-xs mt-0.5 shrink-0">+</span>
-                  <div>
-                    <div className="text-sm font-semibold text-white leading-tight">{f.label}</div>
-                    {f.why && <div className="text-xs text-zinc-500 mt-0.5">{f.why}</div>}
-                  </div>
-                </div>
-              )) : <p className="text-xs text-zinc-600">Aucun facteur positif identifié.</p>}
-            </div>
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-              <div className="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-500 mb-3">Ce qui pèse sur le score ▼</div>
-              {negFactors.length > 0 ? negFactors.map((f, i) => (
-                <div key={i} className="flex items-start gap-2 py-2 border-b border-white/[0.04] last:border-0">
-                  <span className="text-rose-400 font-black text-xs mt-0.5 shrink-0">−</span>
-                  <div>
-                    <div className="text-sm font-semibold text-white leading-tight">{f.label}</div>
-                    {f.why && <div className="text-xs text-zinc-500 mt-0.5">{f.why}</div>}
-                  </div>
-                </div>
-              )) : <p className="text-xs text-zinc-600">Aucun facteur négatif identifié.</p>}
-            </div>
-          </div>
-        )}
-
-        {/* ── Main grid ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-          {/* Score + gauge + history */}
-          <SectionCard title="⚡ Score AlphaBrief">
-            <div className="flex flex-col items-center mb-4">
-              <ScoreGauge score={row.score_total} label={row.score_label} />
-            </div>
-            <div className="space-y-3 mb-4">
-              <PillarBar label="Fondamentaux" score={row.score_fundamentals} />
-              <PillarBar label="Techniques" score={row.score_technicals} />
-              <PillarBar label="Momentum" score={row.score_momentum} />
-            </div>
-            {imp.length > 0 && (
-              <div>
-                <div className="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-600 mb-2">Facteurs clés</div>
-                <div className="space-y-2">
-                  {imp.slice(0, 5).map((item, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <span className={`text-sm shrink-0 mt-0.5 ${item.direction === 'positive' ? 'text-emerald-400' : item.direction === 'negative' ? 'text-rose-400' : 'text-zinc-500'}`}>
-                        {item.direction === 'positive' ? '↑' : item.direction === 'negative' ? '↓' : '→'}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium text-white truncate">{item.label}</span>
-                          <div className="w-12 h-1 rounded-full bg-white/[0.06] shrink-0 overflow-hidden">
-                            <div className={`h-full rounded-full ${item.direction === 'positive' ? 'bg-emerald-500' : item.direction === 'negative' ? 'bg-rose-500' : 'bg-zinc-500'}`}
-                              style={{ width: `${Math.min(100, ((item.importance ?? 5) / 10) * 100)}%` }} />
-                          </div>
-                        </div>
-                        {item.why && <p className="text-[0.6rem] text-zinc-600 mt-0.5 truncate">{item.why}</p>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {history.length >= 2 && (
-              <div className="mt-4">
-                <div className="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-600 mb-1">Évolution du score</div>
-                <HistoryChart history={history} />
-              </div>
-            )}
-          </SectionCard>
-
-          {/* Signal Zone */}
-          <SignalZoneSection fin={fin} mkt={mkt} />
-
-          {/* Fondamentaux */}
-          <SectionCard title="💼 Fondamentaux & Valorisation">
-            {fin ? (
-              <>
-                <div>
-                  <KVRow label="Marge EBIT" value={fmt(fin.ebit_margin, '%')}
-                    color={n(fin.ebit_margin) ? (fin.ebit_margin! >= 15 ? 'text-emerald-400' : fin.ebit_margin! < 5 ? 'text-rose-400' : 'text-white') : 'text-zinc-500'} />
-                  {n(fin.ebit_margin) && <KVBar value={fin.ebit_margin!} max={40} color={fin.ebit_margin! >= 15 ? 'bg-emerald-500' : fin.ebit_margin! >= 5 ? 'bg-amber-500' : 'bg-rose-500'} />}
-                  <KVRow label="CAGR Revenus 3a" value={fmt(fin.revenue_cagr_3y, '%')}
-                    color={n(fin.revenue_cagr_3y) ? (fin.revenue_cagr_3y! >= 10 ? 'text-emerald-400' : fin.revenue_cagr_3y! < 0 ? 'text-rose-400' : 'text-white') : 'text-zinc-500'} />
-                  {n(fin.revenue_cagr_3y) && <KVBar value={Math.max(0, fin.revenue_cagr_3y! + 10)} max={50} color={fin.revenue_cagr_3y! >= 10 ? 'bg-emerald-500' : fin.revenue_cagr_3y! >= 0 ? 'bg-amber-500' : 'bg-rose-500'} />}
-                  <KVRow label="ROE" value={fmt(fin.roe, '%')}
-                    color={n(fin.roe) ? (fin.roe! >= 15 ? 'text-emerald-400' : fin.roe! < 5 ? 'text-rose-400' : 'text-white') : 'text-zinc-500'} />
-                  {n(fin.roe) && <KVBar value={fin.roe!} max={50} color={fin.roe! >= 25 ? 'bg-emerald-500' : fin.roe! >= 15 ? 'bg-indigo-500' : fin.roe! >= 5 ? 'bg-amber-500' : 'bg-rose-500'} />}
-                  <KVRow label="FCF Yield" value={fmt(fin.fcf_yield_ttm, '%')}
-                    color={n(fin.fcf_yield_ttm) ? (fin.fcf_yield_ttm! >= 6 ? 'text-emerald-400' : fin.fcf_yield_ttm! < 1 ? 'text-rose-400' : 'text-white') : 'text-zinc-500'} />
-                  {n(fin.fcf_yield_ttm) && <KVBar value={fin.fcf_yield_ttm!} max={15} color={fin.fcf_yield_ttm! >= 6 ? 'bg-emerald-500' : fin.fcf_yield_ttm! >= 1 ? 'bg-amber-500' : 'bg-rose-500'} />}
-                  <KVRow label="FCF Margin" value={fmt(fin.fcf_margin, '%')}
-                    color={n(fin.fcf_margin) ? (fin.fcf_margin! >= 10 ? 'text-emerald-400' : fin.fcf_margin! < 3 ? 'text-rose-400' : 'text-white') : 'text-zinc-500'} />
-                  <KVRow label="Marge brute" value={fmt(fin.gross_margin, '%')} />
-                  <KVRow label="ROIC" value={fmt(fin.roic, '%')} />
-                </div>
-                <div className="pt-2 mt-2 border-t border-white/[0.04]">
-                  <KVRow label="P/E (TTM)" value={fmt(fin.pe_ttm)}
-                    color={n(fin.pe_ttm) && fin.pe_ttm! > 0 ? (fin.pe_ttm! <= 15 ? 'text-emerald-400' : fin.pe_ttm! >= 50 ? 'text-rose-400' : 'text-white') : 'text-zinc-500'} />
-                  <KVRow label="EV/EBITDA" value={fmt(fin.ev_ebitda_ttm, 'x')}
-                    color={n(fin.ev_ebitda_ttm) && fin.ev_ebitda_ttm! > 0 ? (fin.ev_ebitda_ttm! <= 8 ? 'text-emerald-400' : fin.ev_ebitda_ttm! >= 20 ? 'text-rose-400' : 'text-white') : 'text-zinc-500'} />
-                  <KVRow label="P/B" value={fmt(fin.pb_ratio, 'x')}
-                    color={n(fin.pb_ratio) && fin.pb_ratio! > 0 ? (fin.pb_ratio! <= 1.5 ? 'text-emerald-400' : fin.pb_ratio! >= 8 ? 'text-rose-400' : 'text-white') : 'text-zinc-500'} />
-                </div>
-              </>
-            ) : <p className="text-sm text-zinc-600">Données non disponibles.</p>}
-          </SectionCard>
-
-          {/* Risque */}
-          <SectionCard title="⚠️ Risque & Solidité">
-            {(fin || mkt) ? (
-              <>
-                {n(fin?.net_debt_to_ebitda) && (
-                  <div className="flex items-center justify-between py-2 border-b border-white/[0.04]">
-                    <span className="text-sm text-zinc-400">Net Debt / EBITDA</span>
-                    <div className="flex items-center">
-                      <span className={`text-sm font-semibold tabular-nums ${fin!.net_debt_to_ebitda! < 1 ? 'text-emerald-400' : fin!.net_debt_to_ebitda! > 3 ? 'text-rose-400' : 'text-white'}`}>
-                        {fin!.net_debt_to_ebitda!.toFixed(1)}x
-                      </span>
-                      <DebtTag ratio={fin!.net_debt_to_ebitda!} />
-                    </div>
-                  </div>
-                )}
-                <KVRow label="FCF Margin" value={fmt(fin?.fcf_margin, '%')}
-                  color={n(fin?.fcf_margin) ? (fin!.fcf_margin! >= 10 ? 'text-emerald-400' : fin!.fcf_margin! < 3 ? 'text-rose-400' : 'text-white') : 'text-zinc-500'} />
-                {n(mkt?.beta) && (
-                  <div className="flex items-center justify-between py-2 border-b border-white/[0.04]">
-                    <span className="text-sm text-zinc-400">Beta</span>
-                    <div className="flex items-center">
-                      <span className="text-sm font-semibold tabular-nums text-white">{mkt!.beta!.toFixed(2)}</span>
-                      <BetaTag beta={mkt!.beta!} />
-                    </div>
-                  </div>
-                )}
-                {n(mkt?.dividend_yield) && mkt!.dividend_yield! > 0 && (
-                  <KVRow label="Rendement dividende" value={`${(mkt!.dividend_yield! * 100).toFixed(2)}%`} />
-                )}
-                <KVRow label="ROE" value={fmt(fin?.roe, '%')}
-                  color={n(fin?.roe) ? (fin!.roe! >= 15 ? 'text-emerald-400' : fin!.roe! < 5 ? 'text-rose-400' : 'text-white') : 'text-zinc-500'} />
-                <KVRow label="Marge EBIT" value={fmt(fin?.ebit_margin, '%')}
-                  color={n(fin?.ebit_margin) ? (fin!.ebit_margin! >= 15 ? 'text-emerald-400' : fin!.ebit_margin! < 5 ? 'text-rose-400' : 'text-white') : 'text-zinc-500'} />
-              </>
-            ) : <p className="text-sm text-zinc-600">Données non disponibles.</p>}
-          </SectionCard>
-
-          {/* Techniques */}
-          <SectionCard title="📊 Indicateurs Techniques">
-            {mkt ? (
-              <>
-                {n(mkt.rsi_14) && (
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-zinc-400">RSI (14)</span>
-                      <span className={`text-sm font-bold tabular-nums ${mkt.rsi_14! > 70 ? 'text-rose-400' : mkt.rsi_14! < 30 ? 'text-emerald-400' : 'text-white'}`}>
-                        {mkt.rsi_14!.toFixed(1)}
-                      </span>
-                    </div>
-                    <RSIVisual rsi={mkt.rsi_14!} />
-                  </div>
-                )}
-                <KVRow label="SMA 50" value={fmt(mkt.sma_50, '', 2)} />
-                <KVRow label="SMA 200" value={fmt(mkt.sma_200, '', 2)} />
-                <KVRow label="Beta" value={fmt(mkt.beta, '', 2)} />
-                <div className="mt-3 pt-3 border-t border-white/[0.04]">
-                  <div className="text-[0.6rem] font-bold uppercase tracking-widest text-zinc-600 mb-2">Momentum</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {([['1m', mkt.momentum_1m], ['3m', mkt.momentum_3m], ['6m', mkt.momentum_6m], ['12m', mkt.momentum_12m]] as [string, number | null][]).map(([period, val]) => (
-                      <div key={period} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/[0.02]">
-                        <span className="text-xs text-zinc-500">{period}</span>
-                        <span className={`text-xs font-bold tabular-nums ${n(val) ? (val > 0 ? 'text-emerald-400' : 'text-rose-400') : 'text-zinc-600'}`}>
-                          {n(val) ? fmtSign(val, '%') : '—'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            ) : <p className="text-sm text-zinc-600">Données non disponibles.</p>}
-          </SectionCard>
-
-          {/* Marché */}
-          <SectionCard title="📈 Marché">
-            {mkt ? (
-              <>
-                {n(cur) && (
-                  <div className="flex items-baseline gap-2 mb-4">
-                    <span className="text-2xl font-bold tabular-nums">{cur.toFixed(2)}</span>
-                    <span className="text-zinc-500">{currency}</span>
-                    {n(mkt.change_pct) && (
-                      <span className={`text-sm font-semibold ${mkt.change_pct! >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {fmtSign(mkt.change_pct!, '%')}
-                      </span>
-                    )}
-                  </div>
-                )}
-                <KVRow label="Clôture précédente" value={fmt(mkt.previous_close, '', 2)} />
-                <KVRow label="Volume" value={fmtVol(mkt.volume)} />
-                <KVRow label="Volume moy. 3m" value={fmtVol(mkt.avg_volume_3m)} />
-                <KVRow label="Beta" value={fmt(mkt.beta, '', 2)} />
-                {n(mkt.analyst_target_mean) && (
-                  <KVRow label="Target analystes" value={`${mkt.analyst_target_mean!.toFixed(2)} ${currency}`} />
-                )}
-                {mkt.analyst_recommendation && (
-                  <KVRow label="Recommandation" value={mkt.analyst_recommendation} />
-                )}
-                {cur52 && (
-                  <div className="mt-4">
-                    <div className="text-xs text-zinc-500 mb-1">Range 52 semaines</div>
-                    <RangeBar low={mkt.fifty_two_week_low!} high={mkt.fifty_two_week_high!} current={cur!} currency={currency} />
-                  </div>
-                )}
-              </>
-            ) : <p className="text-sm text-zinc-600">Données non disponibles.</p>}
-          </SectionCard>
-
-          {/* Price Levels */}
-          <PriceLevelsSection fin={fin} mkt={mkt} currency={currency} />
-
-          {/* Identité */}
-          <SectionCard title="Identité">
-            <KVRow label="Secteur" value={row.sector || '—'} />
-            <KVRow label="Bourse" value={row.exchange || '—'} />
-            <KVRow label="Devise" value={currency || '—'} />
-            <KVRow label="Capitalisation" value={row.market_cap ? `${fmtCap(row.market_cap)} ${currency}` : '—'} />
-            <KVRow label="Score date" value={row.score_date} />
-            <KVRow label="Calculé le" value={row.computed_at ? row.computed_at.slice(0, 16).replace('T', ' ') : '—'} />
-          </SectionCard>
-
-        </div>
-
-        <p className="text-xs text-zinc-700 text-center pb-4">
-          Données au {row.score_date} · AlphaBrief est un outil d&apos;aide à la décision — pas du conseil financier.
-        </p>
+        </footer>
       </main>
     </div>
   )
