@@ -11,8 +11,8 @@ const interTight = Inter_Tight({
 const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
-  style: ["italic"],
-  weight: ["500"],
+  style: ["normal", "italic"],
+  weight: ["400", "500", "600"],
 });
 
 const jetbrainsMono = JetBrains_Mono({

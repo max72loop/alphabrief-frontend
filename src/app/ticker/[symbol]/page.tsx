@@ -375,6 +375,9 @@ function DetailsMasthead({ row, ticker, history }: {
           }} />
           DERNIER RECALCUL · {recomputeLabel}
         </span>
+        <span>
+          {lastTime.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}
+        </span>
       </div>
 
       {/* Title + price strip */}
@@ -383,20 +386,35 @@ function DetailsMasthead({ row, ticker, history }: {
           <div style={{ fontFamily: mono, fontSize: 11, color: tone, letterSpacing: '0.22em', marginBottom: 14 }}>
             § DOSSIER · {(row.sector ?? '').toUpperCase()}
           </div>
-          <h1 style={{
-            fontFamily: serif, fontSize: 76, fontWeight: 500, lineHeight: 0.96,
-            letterSpacing: '-0.04em', color: C.ink, margin: 0,
-          }}>
-            {(row.company_name ?? ticker).split(' ').slice(0, 1).join(' ')}
-            {(row.company_name ?? '').split(' ').length > 1 && (
-              <>
-                <br/>
-                <span style={{ fontStyle: 'italic', color: tone }}>
-                  {(row.company_name ?? '').split(' ').slice(1).join(' ')}
-                </span>
-              </>
-            )}
-          </h1>
+          {(() => {
+            const fullName = row.company_name ?? ticker
+            const words = fullName.split(/\s+/)
+            // Choose font size based on total length (keep title 1-2 lines on most cases)
+            const fs = fullName.length > 30 ? 56 : fullName.length > 20 ? 72 : 88
+            // Italic split: first word normal, rest italic — only if name has 2-4 words
+            if (words.length >= 2 && words.length <= 4) {
+              return (
+                <h1 style={{
+                  fontFamily: serif, fontSize: fs, fontWeight: 500, lineHeight: 0.95,
+                  letterSpacing: '-0.04em', color: C.ink, margin: 0,
+                }}>
+                  {words[0]}<br/>
+                  <span style={{ fontStyle: 'italic', color: tone }}>
+                    {words.slice(1).join(' ')}
+                  </span>
+                </h1>
+              )
+            }
+            // Single word or 5+ words → just display without split
+            return (
+              <h1 style={{
+                fontFamily: serif, fontSize: fs, fontWeight: 500, lineHeight: 0.95,
+                letterSpacing: '-0.04em', color: C.ink, margin: 0,
+              }}>
+                {fullName}
+              </h1>
+            )
+          })()}
           <div style={{ display: 'flex', gap: 24, marginTop: 22, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontFamily: mono, fontSize: 13, color: C.muted, letterSpacing: '0.12em' }}>
               {ticker} · {row.exchange ?? '—'}
@@ -407,12 +425,17 @@ function DetailsMasthead({ row, ticker, history }: {
               </span>
             )}
             {n(mkt?.change_pct) && (
-              <span style={{
-                fontFamily: mono, fontSize: 13, fontWeight: 600,
-                color: mkt!.change_pct! < 0 ? C.sanguine : C.phosphor,
-              }}>
-                {mkt!.change_pct! < 0 ? '▼' : '▲'} {fmtSignPct(mkt!.change_pct!)}
-              </span>
+              <>
+                <span style={{
+                  fontFamily: mono, fontSize: 13, fontWeight: 600,
+                  color: mkt!.change_pct! < 0 ? C.sanguine : C.phosphor,
+                }}>
+                  {mkt!.change_pct! < 0 ? '▼' : '▲'} {fmtSignPct(mkt!.change_pct!)}
+                </span>
+                <span style={{ fontFamily: mono, fontSize: 12, color: C.muted, letterSpacing: '0.1em' }}>
+                  VS HIER
+                </span>
+              </>
             )}
             {row.moat_tags && row.moat_tags.length > 0 && (
               <div style={{ display: 'flex', gap: 6 }}>
@@ -474,7 +497,7 @@ function DetailsMasthead({ row, ticker, history }: {
           <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: '0.22em' }}>
             SCORE COMPOSITE · DÉCOMPOSITION
           </div>
-          <Gauge value={score} size={320} stroke={20} decomposition={decomp} showNumeral={true} label={band} />
+          <Gauge value={score} size={340} stroke={22} decomposition={decomp} showNumeral={true} label={band} />
           <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center' }}>
             {[
               { lab: 'FOND.', v: row.score_fundamentals, max: 50, c: C.phosphor },
@@ -500,17 +523,17 @@ function DetailsMasthead({ row, ticker, history }: {
             VERDICT ÉDITORIAL
           </div>
           <div style={{
-            fontFamily: serif, fontSize: 52, fontWeight: 500, lineHeight: 1,
+            fontFamily: serif, fontSize: 56, fontWeight: 500, lineHeight: 1,
             color: tone, letterSpacing: '-0.03em', marginBottom: 18,
           }}>
             {verdict}.
           </div>
           <p style={{
-            fontFamily: serif, fontStyle: 'italic', fontSize: 19, lineHeight: 1.5,
+            fontFamily: serif, fontStyle: 'italic', fontSize: 21, lineHeight: 1.5,
             color: C.inkDim, margin: 0, maxWidth: 580,
           }}>
             <span style={{
-              fontFamily: serif, fontStyle: 'normal', fontSize: 52, color: tone,
+              fontFamily: serif, fontStyle: 'normal', fontSize: 56, color: tone,
               float: 'left', lineHeight: 0.8, marginRight: 8, marginTop: 8,
             }}>«</span>
             {verdictText}
