@@ -258,11 +258,12 @@ function DetailsSubnav({ row, ticker, inWatchlist }: {
   row: TickerScore; ticker: string; inWatchlist: boolean
 }) {
   const tabs = [
-    { id: 'overview', label: "Vue d'ensemble" },
-    { id: 'pillars',  label: 'Piliers' },
-    { id: 'history',  label: 'Historique' },
-    { id: 'peers',    label: 'Pairs' },
-    { id: 'events',   label: 'Calendrier' },
+    { id: 'overview',     label: "Vue d'ensemble" },
+    { id: 'fundamentals', label: 'Fondamentaux' },
+    { id: 'technicals',   label: 'Technique' },
+    { id: 'momentum',     label: 'Momentum' },
+    { id: 'history',      label: 'Historique' },
+    { id: 'peers',        label: 'Pairs' },
   ]
   return (
     <div style={{
@@ -332,22 +333,74 @@ function DetailsMasthead({ row, ticker, history }: {
     mom:  row.score_momentum / 100,
   }
 
-  // Takeaways: top 3 importance_items
-  const imp = row.importance_items ?? []
-  const takeaways = [...imp]
-    .sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0))
-    .slice(0, 3)
-    .map((t, i) => ({
-      tag: t.direction === 'positive' ? 'FORCE' : t.direction === 'negative' ? 'FAIBLESSE' : 'CONTEXTE',
-      tone: t.direction === 'positive' ? C.phosphor : t.direction === 'negative' ? C.sanguine : C.ember,
-      text: t.why || t.label,
-      idx: i + 1,
-    }))
+  // Takeaways: une phrase par pilier (FONDAMENTAUX / TECHNIQUE / MOMENTUM)
+  const toneForScore = (s: number) =>
+    s >= 70 ? C.phosphor : s >= 45 ? C.ember : C.sanguine
+
+  const fundText = (() => {
+    const ebit = fin?.ebit_margin
+    const cagr = fin?.revenue_cagr_3y
+    const roic = fin?.roic
+    const sf = row.score_fundamentals
+    if (sf >= 70 && n(ebit) && n(roic))
+      return `Marge EBIT ${ebit!.toFixed(1)}% et ROIC ${roic!.toFixed(1)}% — qualité confirmée.`
+    if (sf >= 70 && n(cagr))
+      return `Croissance CA ${fmtSignPct(cagr)}/an, profil de qualité solide.`
+    if (sf >= 45 && n(ebit))
+      return `Marge EBIT ${ebit!.toFixed(1)}%, bilan stable mais sans franche accélération.`
+    if (sf < 45 && n(ebit))
+      return `Marge EBIT ${ebit!.toFixed(1)}% — sous la moyenne sectorielle.`
+    return `Score fondamentaux ${Math.round(sf / 2)}/50 — voir détails ci-dessous.`
+  })()
+
+  const techText = (() => {
+    const rsi = mkt?.rsi_14
+    const sma50 = mkt?.sma_50
+    const sma200 = mkt?.sma_200
+    const px = mkt?.current_price
+    const st = row.score_technicals
+    const aboveMa200 = n(px) && n(sma200) ? px! > sma200! : null
+    if (st >= 70 && n(rsi) && aboveMa200)
+      return `RSI ${rsi!.toFixed(0)}, prix au-dessus de la MA200 — configuration haussière.`
+    if (st < 45 && aboveMa200 === false)
+      return `MA200 cassée à la baisse. Pas de signal de retournement.`
+    if (n(rsi) && n(sma50) && n(sma200))
+      return `RSI ${rsi!.toFixed(0)}, configuration neutre vs moyennes mobiles.`
+    return `Score technique ${Math.round(st / 4)}/25 — voir détails ci-dessous.`
+  })()
+
+  const momText = (() => {
+    const m12 = mkt?.momentum_12m
+    const m3 = mkt?.momentum_3m
+    const sm = row.score_momentum
+    if (sm >= 70 && n(m12))
+      return `${fmtSignPct(m12)} sur 12M — surperforme le marché.`
+    if (sm < 45 && n(m12))
+      return `${fmtSignPct(m12)} sur 12M — sous-performance marquée.`
+    if (n(m12))
+      return `${fmtSignPct(m12)} sur 12M, momentum dans la moyenne.`
+    if (n(m3))
+      return `${fmtSignPct(m3)} sur 3M, données 12M indisponibles.`
+    return `Score momentum ${Math.round(sm / 4)}/25 — voir détails ci-dessous.`
+  })()
+
+  const takeaways = [
+    { idx: 1, tag: 'FONDAMENTAUX', tone: toneForScore(row.score_fundamentals), text: fundText, href: '#fundamentals' },
+    { idx: 2, tag: 'TECHNIQUE',    tone: toneForScore(row.score_technicals),   text: techText, href: '#technicals' },
+    { idx: 3, tag: 'MOMENTUM',     tone: toneForScore(row.score_momentum),     text: momText,  href: '#momentum' },
+  ]
 
   // Last recompute time
   const lastIso = history.length > 0 ? history[history.length - 1].scored_at : row.computed_at
   const lastTime = new Date(lastIso)
   const recomputeLabel = `${lastTime.toISOString().slice(11, 16)} UTC`
+
+  // Numéro d'édition (façon revue) : jours écoulés depuis le lancement
+  const LAUNCH_ISO = '2026-01-01T00:00:00Z'
+  const issueNumber = Math.max(
+    1,
+    Math.floor((lastTime.getTime() - new Date(LAUNCH_ISO).getTime()) / (1000 * 60 * 60 * 24)) + 1,
+  )
 
   const verdictText = row.one_liner ??
     (score >= 75 ? "Les trois piliers sont alignés. La conjoncture, les fondamentaux et le momentum convergent — c'est exactement la situation que le screener cherche à isoler."
@@ -364,7 +417,7 @@ function DetailsMasthead({ row, ticker, history }: {
         paddingBottom: 14, borderBottom: `1px solid ${C.rule}`, flexWrap: 'wrap', gap: 12,
       }}>
         <span>
-          <Link href="/dashboard" style={{ color: C.muted, textDecoration: 'none' }}>SCREENER</Link>
+          <Link href="/watchlist" style={{ color: C.muted, textDecoration: 'none' }}>WATCHLIST</Link>
           &nbsp;/&nbsp;
           <span style={{ color: C.muted }}>{(row.sector ?? '').toUpperCase()}</span>
           &nbsp;/&nbsp;
@@ -378,7 +431,7 @@ function DetailsMasthead({ row, ticker, history }: {
           DERNIER RECALCUL · {recomputeLabel}
         </span>
         <span>
-          {lastTime.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}
+          VOL. I · N°{issueNumber} · {lastTime.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}
         </span>
       </div>
 
@@ -541,25 +594,23 @@ function DetailsMasthead({ row, ticker, history }: {
             {verdictText}
           </p>
 
-          {takeaways.length > 0 && (
-            <div style={{
-              marginTop: 28, padding: '20px 0', borderTop: `1px solid ${C.rule}`,
-              display: 'grid', gridTemplateColumns: `repeat(${takeaways.length}, 1fr)`, gap: 24,
-            }}>
-              {takeaways.map(t => (
-                <div key={t.idx}>
-                  <div style={{
-                    fontFamily: mono, fontSize: 10, color: t.tone, letterSpacing: '0.18em', marginBottom: 6,
-                  }}>
-                    {String(t.idx).padStart(2, '0')} · {t.tag}
-                  </div>
-                  <div style={{ fontFamily: sans, fontSize: 13, color: C.ink, lineHeight: 1.45 }}>
-                    {t.text}
-                  </div>
+          <div style={{
+            marginTop: 28, padding: '20px 0', borderTop: `1px solid ${C.rule}`,
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24,
+          }}>
+            {takeaways.map(t => (
+              <a key={t.idx} href={t.href} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div style={{
+                  fontFamily: mono, fontSize: 10, color: t.tone, letterSpacing: '0.18em', marginBottom: 6,
+                }}>
+                  {String(t.idx).padStart(2, '0')} · {t.tag}
                 </div>
-              ))}
-            </div>
-          )}
+                <div style={{ fontFamily: sans, fontSize: 13, color: C.ink, lineHeight: 1.45 }}>
+                  {t.text}
+                </div>
+              </a>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -674,11 +725,13 @@ function PillarsDeepDive({ row }: { row: TickerScore }) {
       }}>
         {pillars.map((p, i) => {
           const pillarPct = (p.value * 100) / (p.total * 4)
+          const anchorId = p.key === 'fund' ? 'fundamentals' : p.key === 'tech' ? 'technicals' : 'momentum'
           return (
-          <div key={p.key} style={{
+          <div key={p.key} id={anchorId} style={{
             padding: '28px 24px',
             borderRight: i < 2 ? `1px solid ${C.rule}` : 'none',
             display: 'flex', flexDirection: 'column', gap: 18,
+            scrollMarginTop: 120,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div style={{ flex: 1, minWidth: 0 }}>

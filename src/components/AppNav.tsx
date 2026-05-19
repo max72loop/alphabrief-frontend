@@ -84,19 +84,17 @@ export default async function AppNav({ activePath }: { activePath?: string }) {
         {/* Cmd+K search */}
         {user && <NavSearchBox />}
 
-        {/* Nav links */}
+        {/* Nav links — édition / watchlist / historique / alertes */}
         <div className="flex items-center gap-5 ml-6 flex-1 min-w-0">
-          {navLink('/dashboard', 'Mon suivi', ['/dashboard', '/watchlist', '/ticker'])}
-          {navLink('/marche', 'Marché')}
-          {navLink('/compare', 'Comparer')}
-          {navLink('/portfolio', 'Portfolio')}
-          {navLink('/methode', 'Méthode')}
-        </div>
-
-        {/* Right */}
-        <div className="flex items-center gap-4">
-          {/* Alertes */}
-          <Link href="/alerts" className={`relative text-sm font-medium transition-colors ${activePath === '/alerts' ? 'text-[#F0EBDB]' : 'text-[#4A6355] hover:text-[#F0EBDB]'}`}>
+          {navLink('/dashboard', 'Édition', ['/dashboard', '/ticker'])}
+          {navLink('/watchlist', 'Watchlist')}
+          {navLink('/historique', 'Historique')}
+          <Link
+            href="/alerts"
+            className={`relative text-sm font-medium transition-colors ${
+              activePath === '/alerts' ? 'text-[#F0EBDB]' : 'text-[#4A6355] hover:text-[#F0EBDB]'
+            }`}
+          >
             Alertes
             {unread > 0 && (
               <span className="absolute -top-1.5 -right-3 bg-[#7EE5A3] text-[#0A0F0C] text-[0.55rem] font-bold rounded-full w-4 h-4 flex items-center justify-center">
@@ -104,7 +102,10 @@ export default async function AppNav({ activePath }: { activePath?: string }) {
               </span>
             )}
           </Link>
+        </div>
 
+        {/* Right */}
+        <div className="flex items-center gap-4">
           {/* Profile */}
           {/* Analyses restantes (free users) */}
           {user && !analysesInfo.isPremium && analysesInfo.remaining !== null && (
