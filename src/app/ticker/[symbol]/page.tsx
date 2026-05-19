@@ -894,7 +894,7 @@ export default async function TickerPage({ params }: { params: Promise<{ symbol:
     supabase.from('score_history').select('score, confidence, scored_at')
       .eq('ticker', ticker).order('scored_at', { ascending: true }).limit(30),
     supabase.from('profiles')
-      .select('is_premium, analyses_today, last_analysis_date')
+      .select('plan, analyses_today, last_analysis_date')
       .eq('id', user.id)
       .maybeSingle(),
   ])
@@ -903,7 +903,7 @@ export default async function TickerPage({ params }: { params: Promise<{ symbol:
 
   // ── Freemium gate ──
   const profile = profileResult.data
-  const isPremium = profile?.is_premium ?? false
+  const isPremium = (profile?.plan ?? '').toLowerCase() === 'premium'
   const isToday = profile?.last_analysis_date === today
   const usedToday = isToday ? (profile?.analyses_today ?? 0) : 0
 

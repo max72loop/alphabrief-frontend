@@ -169,7 +169,7 @@ export default async function DashboardPage() {
   try {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('is_premium, analyses_today, last_analysis_date')
+      .select('plan, analyses_today, last_analysis_date')
       .eq('id', user.id)
       .maybeSingle()
     if (profile) {
@@ -178,7 +178,7 @@ export default async function DashboardPage() {
       quota = {
         used: Math.min(usedToday, FREE_DAILY_QUOTA),
         total: FREE_DAILY_QUOTA,
-        isPremium: !!profile.is_premium,
+        isPremium: (profile.plan ?? '').toLowerCase() === 'premium',
       }
     }
   } catch { /* keep default */ }

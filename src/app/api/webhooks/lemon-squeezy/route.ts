@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       const orderId = data?.id as string | undefined
       const { error } = await supabase.from('profiles').upsert({
         id: userId,
-        is_premium: true,
+        plan: 'premium',
         lemon_order_id: orderId ?? null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' })
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
       // La période est terminée, on révoque l'accès
       const { error } = await supabase.from('profiles').upsert({
         id: userId,
-        is_premium: false,
+        plan: 'free',
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' })
       if (error) console.error(`[webhook] Erreur révocation premium userId=${userId}`, error)

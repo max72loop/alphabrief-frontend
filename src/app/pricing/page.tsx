@@ -11,10 +11,10 @@ export default async function PricingPage() {
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('is_premium')
+      .select('plan')
       .eq('id', user.id)
       .single()
-    isPremium = profile?.is_premium ?? false
+    isPremium = (profile?.plan ?? '').toLowerCase() === 'premium'
   }
 
   return (

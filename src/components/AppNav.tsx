@@ -32,11 +32,11 @@ async function getAnalysesInfo(userId: string): Promise<{ isPremium: boolean; re
     const supabase = await createClient()
     const { data } = await supabase
       .from('profiles')
-      .select('is_premium, analyses_today, last_analysis_date')
+      .select('plan, analyses_today, last_analysis_date')
       .eq('id', userId)
       .maybeSingle()
     if (!data) return { isPremium: false, remaining: 5 }
-    if (data.is_premium) return { isPremium: true, remaining: null }
+    if ((data.plan ?? '').toLowerCase() === 'premium') return { isPremium: true, remaining: null }
     const today = new Date().toISOString().slice(0, 10)
     const usedToday = data.last_analysis_date === today ? (data.analyses_today ?? 0) : 0
     return { isPremium: false, remaining: Math.max(0, 5 - usedToday) }
