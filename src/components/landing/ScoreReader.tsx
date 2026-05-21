@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { C, serif, mono, Gauge } from "./Gauge";
+import { C, serif, mono, Gauge, SCORE_THRESHOLDS, scoreColor } from "./Gauge";
 
 const BANDS = [
-  { min: 75, label: "EXCELLENT", verdict: "Signal fort",   color: C.phosphor,     desc: "Fondamentaux solides, momentum positif, technique en zone d'achat. On surveille, on n'attend pas." },
-  { min: 60, label: "BON",       verdict: "À surveiller",   color: C.phosphorSoft, desc: "Bonne qualité globale mais un pilier en retrait. Point d'entrée possible sur correction." },
-  { min: 45, label: "NEUTRE",    verdict: "Pas de signal",  color: C.ember,        desc: "Profil mixte — métriques contrastées. Mieux vaut passer son tour ou approfondir l'analyse." },
-  { min: 30, label: "ATTENTION", verdict: "Vent contraire", color: "#E58A4E",      desc: "Faiblesses identifiées sur plusieurs piliers. Rester à l'écart sauf thèse forte." },
-  { min: 0,  label: "RISQUÉ",    verdict: "À éviter",       color: C.sanguine,     desc: "Score faible sur l'ensemble. Revoir en profondeur ou passer à autre chose." },
+  { min: SCORE_THRESHOLDS.excellent, label: "EXCELLENT", verdict: "Signal fort",   color: C.phosphor,     desc: "Fondamentaux solides, momentum positif, technique en zone d'achat. On surveille, on n'attend pas." },
+  { min: SCORE_THRESHOLDS.good,      label: "BON",       verdict: "À surveiller",   color: C.phosphorSoft, desc: "Bonne qualité globale mais un pilier en retrait. Point d'entrée possible sur correction." },
+  { min: SCORE_THRESHOLDS.neutral,   label: "NEUTRE",    verdict: "Pas de signal",  color: C.ember,        desc: "Profil mixte — métriques contrastées. Mieux vaut passer son tour ou approfondir l'analyse." },
+  { min: SCORE_THRESHOLDS.weak,      label: "ATTENTION", verdict: "Vent contraire", color: "#E58A4E",      desc: "Faiblesses identifiées sur plusieurs piliers. Rester à l'écart sauf thèse forte." },
+  { min: 0,                          label: "ÉVITER",    verdict: "À éviter",       color: C.sanguine,     desc: "Score faible sur l'ensemble. Revoir en profondeur ou passer à autre chose." },
 ];
 
 const EXAMPLES = [
@@ -92,12 +92,10 @@ export function ScoreReader() {
                 style={{
                   padding: "6px 12px",
                   border: `1px solid ${C.rule}`,
-                  background: e.score >= 75 ? `${C.phosphor}10` : e.score >= 45 ? `${C.ember}08` : `${C.sanguine}10`,
-                  color:
-                    e.score >= 75 ? C.phosphor
-                    : e.score >= 60 ? C.phosphorSoft
-                    : e.score >= 45 ? C.ember
-                    : C.sanguine,
+                  background: e.score >= SCORE_THRESHOLDS.excellent ? `${C.phosphor}10`
+                    : e.score >= SCORE_THRESHOLDS.neutral ? `${C.ember}08`
+                    : `${C.sanguine}10`,
+                  color: scoreColor(e.score),
                   fontFamily: mono,
                   fontSize: 11,
                   fontWeight: 600,

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import AppNav from '@/components/AppNav'
 import WatchlistButton from '@/app/dashboard/WatchlistButton'
-import { Gauge, C, serif, sans, mono } from '@/components/landing/Gauge'
+import { Gauge, C, serif, sans, mono, SCORE_THRESHOLDS, scoreColor, scoreLabel } from '@/components/landing/Gauge'
 import { TickerTape } from '@/components/landing/TickerTape'
 import { FREE_DAILY_QUOTA } from '@/lib/quota'
 import DetailsTabs from './_components/DetailsTabs'
@@ -117,25 +117,13 @@ function fmtVol(v: number | null | undefined): string {
   if (v >= 1e3) return `${(v / 1e3).toFixed(0)} K`
   return `${v}`
 }
-function toneFor(score: number): string {
-  if (score >= 75) return C.phosphor
-  if (score >= 60) return C.phosphorSoft
-  if (score >= 45) return C.ember
-  if (score >= 30) return '#E58A4E'
-  return C.sanguine
-}
-function bandFor(score: number): string {
-  if (score >= 75) return 'EXCELLENT'
-  if (score >= 60) return 'BON'
-  if (score >= 45) return 'NEUTRE'
-  if (score >= 30) return 'ATTENTION'
-  return 'RISQUÉ'
-}
+const toneFor = scoreColor
+const bandFor = scoreLabel
 function verdictFor(score: number): string {
-  if (score >= 75) return 'Signal fort'
-  if (score >= 60) return 'À surveiller'
-  if (score >= 45) return 'Pas de signal'
-  if (score >= 30) return 'Vent contraire'
+  if (score >= SCORE_THRESHOLDS.excellent) return 'Signal fort'
+  if (score >= SCORE_THRESHOLDS.good)      return 'À surveiller'
+  if (score >= SCORE_THRESHOLDS.neutral)   return 'Pas de signal'
+  if (score >= SCORE_THRESHOLDS.weak)      return 'Vent contraire'
   return 'À éviter'
 }
 function timeAgo(iso: string): string {
@@ -320,8 +308,7 @@ function DetailsMasthead({ row, ticker, history }: {
   }
 
   // Takeaways: une phrase par pilier (FONDAMENTAUX / TECHNIQUE / MOMENTUM)
-  const toneForScore = (s: number) =>
-    s >= 70 ? C.phosphor : s >= 45 ? C.ember : C.sanguine
+  const toneForScore = scoreColor
 
   const fundText = (() => {
     const ebit = fin?.ebit_margin
@@ -389,9 +376,9 @@ function DetailsMasthead({ row, ticker, history }: {
   )
 
   const verdictText = row.one_liner ??
-    (score >= 75 ? "Les trois piliers sont alignés. La conjoncture, les fondamentaux et le momentum convergent — c'est exactement la situation que le screener cherche à isoler."
-    : score >= 60 ? "Le score est solide, mais un pilier traîne. Avant d'entrer, vérifiez la cohérence entre la croissance et la valorisation."
-    : score >= 45 ? "Aucun signal franc dans un sens ou dans l'autre. Le titre n'est ni à acheter ni à éviter — il attend une catalyse."
+    (score >= SCORE_THRESHOLDS.excellent ? "Les trois piliers sont alignés. La conjoncture, les fondamentaux et le momentum convergent — c'est exactement la situation que le screener cherche à isoler."
+    : score >= SCORE_THRESHOLDS.good     ? "Le score est solide, mais un pilier traîne. Avant d'entrer, vérifiez la cohérence entre la croissance et la valorisation."
+    : score >= SCORE_THRESHOLDS.neutral  ? "Aucun signal franc dans un sens ou dans l'autre. Le titre n'est ni à acheter ni à éviter — il attend une catalyse."
     : "Plusieurs piliers en faiblesse. Ce n'est pas le moment d'ajouter — c'est le moment de poser des questions au management.")
 
   return (

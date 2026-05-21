@@ -3,7 +3,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { C, serif, sans, mono, Gauge } from "./Gauge";
+import { C, serif, sans, mono, Gauge, scoreLabel } from "./Gauge";
 
 export function Hero() {
   const [score, setScore] = useState(0);
@@ -211,13 +211,7 @@ export function Hero() {
               value={score}
               size={260}
               stroke={16}
-              label={
-                score >= 75 ? "EXCELLENT"
-                : score >= 60 ? "BON"
-                : score >= 45 ? "NEUTRE"
-                : score >= 30 ? "ATTENTION"
-                : "RISQUÉ"
-              }
+              label={scoreLabel(score)}
             />
           </div>
 

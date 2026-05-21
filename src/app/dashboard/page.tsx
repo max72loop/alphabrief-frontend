@@ -8,6 +8,7 @@ import DashboardWatchlist, { type WatchRow } from './_components/DashboardWatchl
 import QuickScorer, { type RecentItem, type Suggestion } from './_components/QuickScorer'
 import AlertsAndQuota, { type AlertItem, type Quota } from './_components/AlertsAndQuota'
 import { TickerTape } from '@/components/landing/TickerTape'
+import { SCORE_THRESHOLDS } from '@/components/landing/Gauge'
 import { FREE_DAILY_QUOTA } from '@/lib/quota'
 
 const GUEST_LIMIT = 20
@@ -30,16 +31,16 @@ function noteFor(score: number, prev?: number | null): string {
     if (delta >= 5) return "Le score grimpe nettement — un pilier vire au vert."
     if (delta <= -5) return "Score en baisse marquée. Risque sur un des piliers."
   }
-  if (score >= 80) return "Signal premium. Fondamentaux, technique et momentum alignés."
-  if (score >= 65) return "Profil solide. Surveiller le rythme de croissance."
-  if (score >= 50) return "Score neutre. Pas de signal franc dans un sens ou l'autre."
+  if (score >= SCORE_THRESHOLDS.excellent) return "Signal premium. Fondamentaux, technique et momentum alignés."
+  if (score >= SCORE_THRESHOLDS.good)      return "Profil solide. Surveiller le rythme de croissance."
+  if (score >= SCORE_THRESHOLDS.neutral)   return "Score neutre. Pas de signal franc dans un sens ou l'autre."
   return "Vent contraire. Plusieurs piliers en faiblesse."
 }
 
 function tagFor(score: number, watching: boolean): string {
-  if (score >= 80) return watching ? "PROMOTION" : "TOP DU JOUR"
-  if (score >= 65) return "ROTATION"
-  if (score >= 45) return "STABLE"
+  if (score >= SCORE_THRESHOLDS.excellent) return watching ? "PROMOTION" : "TOP DU JOUR"
+  if (score >= SCORE_THRESHOLDS.good)      return "ROTATION"
+  if (score >= SCORE_THRESHOLDS.neutral)   return "STABLE"
   return "DOWNGRADE"
 }
 
@@ -265,34 +266,28 @@ export default async function DashboardPage() {
             alerts: alertItems.length,
           }}
         />
+        {/* FOCUS PRINCIPAL : l'édition du jour. Les 4 meilleurs scores
+            sur la watchlist (fallback : top du marché) avec note éditoriale. */}
         <PersonalEdition items={editionItems} watchlistSize={watchRows.length} />
+
+        {/* SECONDAIRE : table complète de la watchlist personnelle. */}
         <DashboardWatchlist rows={watchRows} />
+
+        {/* TERTIAIRE : actions du jour. Ordre logique : on agit (scorer
+            un titre) puis on consulte le suivi (alertes). */}
         <QuickScorer suggestions={suggestions} recent={recent} />
         <AlertsAndQuota alerts={alertItems} quota={quota} />
 
         <footer
+          className="max-w-[1320px] mx-auto px-10 py-6 mt-10 border-t border-[#1A2520] flex items-center justify-center"
           style={{
-            borderTop: '1px solid #1A2520',
-            padding: '24px 40px',
-            maxWidth: 1320,
-            margin: '40px auto 0',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
             fontFamily: 'var(--font-jetbrains-mono), ui-monospace, Menlo, monospace',
             fontSize: 10,
             color: '#6D7A72',
             letterSpacing: '0.14em',
-            flexWrap: 'wrap',
-            gap: 12,
           }}
         >
-          <span>ALPHABRIEF · ÉDITION PERSONNELLE · NE CONSTITUE PAS UN CONSEIL EN INVESTISSEMENT</span>
-          <div style={{ display: 'flex', gap: 20 }}>
-            <Link href="/methode" style={{ color: 'inherit', textDecoration: 'none' }}>MÉTHODE</Link>
-            <Link href="/pricing" style={{ color: 'inherit', textDecoration: 'none' }}>PRICING</Link>
-            <Link href="/alerts" style={{ color: 'inherit', textDecoration: 'none' }}>ALERTES</Link>
-          </div>
+          ALPHABRIEF · ÉDITION PERSONNELLE · NE CONSTITUE PAS UN CONSEIL EN INVESTISSEMENT
         </footer>
       </main>
     </div>

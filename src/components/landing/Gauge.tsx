@@ -23,6 +23,34 @@ export const serif = "var(--font-fraunces), 'Times New Roman', serif";
 export const sans = "var(--font-inter-tight), -apple-system, system-ui, sans-serif";
 export const mono = "var(--font-jetbrains-mono), ui-monospace, Menlo, monospace";
 
+// Seuils de score — source de vérité unique pour le code couleur, labels et tags.
+// Calibrés sur la distribution réelle (mai 2026) : top observé 57, médiane ~48.
+// Les anciens seuils 75/60/45/30 produisaient un visuel "tout orange" puisque
+// quasi aucun ticker n'atteignait 60. Quand la qualité des fondamentaux FMP
+// remontera, ces seuils pourront être révisés.
+export const SCORE_THRESHOLDS = {
+  excellent: 55,
+  good: 48,
+  neutral: 42,
+  weak: 35,
+} as const;
+
+export function scoreColor(v: number): string {
+  if (v >= SCORE_THRESHOLDS.excellent) return C.phosphor;
+  if (v >= SCORE_THRESHOLDS.good)      return C.phosphorSoft;
+  if (v >= SCORE_THRESHOLDS.neutral)   return C.ember;
+  if (v >= SCORE_THRESHOLDS.weak)      return "#E58A4E";
+  return C.sanguine;
+}
+
+export function scoreLabel(v: number): string {
+  if (v >= SCORE_THRESHOLDS.excellent) return "EXCELLENT";
+  if (v >= SCORE_THRESHOLDS.good)      return "BON";
+  if (v >= SCORE_THRESHOLDS.neutral)   return "NEUTRE";
+  if (v >= SCORE_THRESHOLDS.weak)      return "ATTENTION";
+  return "ÉVITER";
+}
+
 type GaugeProps = {
   value: number;
   size?: number;
@@ -51,12 +79,7 @@ export function Gauge({
   const v = Math.max(0, Math.min(100, value));
   const pct = v / 100;
 
-  const color =
-    v >= 75 ? C.phosphor
-    : v >= 60 ? C.phosphorSoft
-    : v >= 45 ? C.ember
-    : v >= 30 ? "#E58A4E"
-    : C.sanguine;
+  const color = scoreColor(v);
 
   const arc = (a0: number, a1: number) => {
     const x0 = cx + r * Math.cos(a0);

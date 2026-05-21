@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { C, serif, mono, Gauge } from "@/components/landing/Gauge";
+import { C, serif, mono, Gauge, scoreColor } from "@/components/landing/Gauge";
 
 export type EditionItem = {
   ticker: string;
@@ -12,12 +12,7 @@ export type EditionItem = {
   momentum3m?: number | null;
 };
 
-function toneFor(score: number) {
-  if (score >= 75) return C.phosphor;
-  if (score >= 60) return C.phosphorSoft;
-  if (score >= 45) return C.ember;
-  return C.sanguine;
-}
+const toneFor = scoreColor;
 
 function tagColor(tag: string) {
   if (tag === "PROMOTION" || tag === "ROTATION" || tag === "TOP DU JOUR" || tag === "TOP DE LA SEMAINE") return C.phosphor;

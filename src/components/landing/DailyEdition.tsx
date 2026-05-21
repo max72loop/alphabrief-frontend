@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { C, serif, mono, Gauge } from "./Gauge";
+import { C, serif, mono, Gauge, scoreColor } from "./Gauge";
 
 type Item = {
   sym: string;
@@ -47,11 +47,7 @@ export function DailyEdition() {
           const delta = it.score - it.prev;
           const up = delta > 0;
           const tagColor = up ? C.phosphor : it.tag === "DOWNGRADE" ? C.ember : C.sanguine;
-          const scoreColor =
-            it.score >= 75 ? C.phosphor
-            : it.score >= 60 ? C.phosphorSoft
-            : it.score >= 45 ? C.ember
-            : C.sanguine;
+          const scColor = scoreColor(it.score);
           return (
             <Link
               key={it.sym}
@@ -90,7 +86,7 @@ export function DailyEdition() {
               >
                 <div className="flex flex-col">
                   <span style={{ fontFamily: mono, fontSize: 9, color: C.muted, letterSpacing: "0.16em" }}>SCORE</span>
-                  <span style={{ fontFamily: mono, fontSize: 42, fontWeight: 600, color: scoreColor, letterSpacing: "-0.04em", lineHeight: 1 }}>
+                  <span style={{ fontFamily: mono, fontSize: 42, fontWeight: 600, color: scColor, letterSpacing: "-0.04em", lineHeight: 1 }}>
                     {it.score}
                   </span>
                 </div>

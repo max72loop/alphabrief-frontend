@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { C, serif, sans, mono, Gauge } from "@/components/landing/Gauge";
+import { C, serif, sans, mono, Gauge, SCORE_THRESHOLDS, scoreColor, scoreLabel } from "@/components/landing/Gauge";
 
 export type WatchRow = {
   ticker: string;
@@ -17,31 +17,20 @@ export type WatchRow = {
   rsi14?: number | null;
 };
 
-function toneFor(score: number) {
-  if (score >= 75) return C.phosphor;
-  if (score >= 60) return C.phosphorSoft;
-  if (score >= 45) return C.ember;
-  return C.sanguine;
-}
-function bandFor(score: number) {
-  if (score >= 75) return "EXCELLENT";
-  if (score >= 60) return "BON";
-  if (score >= 45) return "NEUTRE";
-  if (score >= 30) return "ATTENTION";
-  return "RISQUÉ";
-}
+const toneFor = scoreColor;
+const bandFor = scoreLabel;
 function verdictFor(score: number) {
-  if (score >= 75) return "Signal fort — fondamentaux et momentum alignés.";
-  if (score >= 60) return "Profil solide. Un pilier à surveiller.";
-  if (score >= 45) return "Mixte. Pas de signal franc, mieux vaut passer son tour.";
+  if (score >= SCORE_THRESHOLDS.excellent) return "Signal fort — fondamentaux et momentum alignés.";
+  if (score >= SCORE_THRESHOLDS.good)      return "Profil solide. Un pilier à surveiller.";
+  if (score >= SCORE_THRESHOLDS.neutral)   return "Mixte. Pas de signal franc, mieux vaut passer son tour.";
   return "Vent contraire. Plusieurs piliers en faiblesse.";
 }
 
 const FILTERS = [
   { id: "all", label: "TOUS" },
   { id: "alerts", label: "ALERTES" },
-  { id: "strong", label: "SCORE ≥ 70" },
-  { id: "weak", label: "SCORE < 45" },
+  { id: "strong", label: `SCORE ≥ ${SCORE_THRESHOLDS.good}` },
+  { id: "weak", label: `SCORE < ${SCORE_THRESHOLDS.neutral}` },
 ] as const;
 
 const SORTS = [
@@ -60,8 +49,8 @@ export default function DashboardWatchlist({ rows }: { rows: WatchRow[] }) {
   const filtered = useMemo(() => {
     let list = [...rows];
     if (filter === "alerts") list = list.filter((r) => r.alert);
-    if (filter === "strong") list = list.filter((r) => r.score >= 70);
-    if (filter === "weak") list = list.filter((r) => r.score < 45);
+    if (filter === "strong") list = list.filter((r) => r.score >= SCORE_THRESHOLDS.good);
+    if (filter === "weak")   list = list.filter((r) => r.score < SCORE_THRESHOLDS.neutral);
     if (sortBy === "score") list.sort((a, b) => b.score - a.score);
     if (sortBy === "sym") list.sort((a, b) => a.ticker.localeCompare(b.ticker));
     if (sortBy === "alert") list.sort((a, b) => Number(b.alert) - Number(a.alert) || b.score - a.score);

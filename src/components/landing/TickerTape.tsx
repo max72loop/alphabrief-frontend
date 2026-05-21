@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { C, mono } from "./Gauge";
+import { C, mono, scoreColor } from "./Gauge";
 
 export function TickerTape({ inline = false }: { inline?: boolean } = {}) {
   const [tick, setTick] = useState(0);
@@ -33,8 +33,7 @@ export function TickerTape({ inline = false }: { inline?: boolean } = {}) {
     score: Math.max(0, Math.min(100, b.score + (((tick + i) % 3) - 1))),
   }));
 
-  const color = (s: number) =>
-    s >= 75 ? C.phosphor : s >= 60 ? C.phosphorSoft : s >= 45 ? C.ember : C.sanguine;
+  const color = scoreColor;
 
   const doubled = [...items, ...items];
 

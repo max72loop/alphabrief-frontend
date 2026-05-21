@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { C, serif, sans, mono } from '@/components/landing/Gauge'
+import { C, serif, sans, mono, scoreColor } from '@/components/landing/Gauge'
 
 export type HistoryPoint = { score: number; iso: string }
 export type ChartEvent = { event_date: string; label: string; kind: string }
@@ -10,13 +10,7 @@ type Range = '1M' | '3M' | '6M' | '1Y' | '3Y'
 const RANGES: Range[] = ['1M', '3M', '6M', '1Y', '3Y']
 const RANGE_DAYS: Record<Range, number> = { '1M': 31, '3M': 92, '6M': 183, '1Y': 365, '3Y': 1095 }
 
-function toneFor(score: number): string {
-  if (score >= 75) return C.phosphor
-  if (score >= 60) return C.phosphorSoft
-  if (score >= 45) return C.ember
-  if (score >= 30) return '#E58A4E'
-  return C.sanguine
-}
+const toneFor = scoreColor
 
 function dateLabel(iso: string): string {
   const d = new Date(iso)

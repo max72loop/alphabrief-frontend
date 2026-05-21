@@ -2,6 +2,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import WatchlistButton from './WatchlistButton'
+import { SCORE_THRESHOLDS, scoreLabel } from '@/components/landing/Gauge'
 
 type MarketData = {
   rsi_14?: number | null
@@ -40,17 +41,15 @@ export type TickerScore = {
 // ── Score helpers ────────────────────────────────────────────────────────────
 
 function signalTier(score: number): 'high' | 'mid' | 'low' {
-  if (score >= 65) return 'high'
-  if (score >= 40) return 'mid'
+  if (score >= SCORE_THRESHOLDS.good)    return 'high'
+  if (score >= SCORE_THRESHOLDS.neutral) return 'mid'
   return 'low'
 }
 
 function signalLabel(score: number) {
-  if (score >= 75) return 'Excellent'
-  if (score >= 60) return 'Bon'
-  if (score >= 45) return 'Neutre'
-  if (score >= 30) return 'Attention'
-  return 'Risqué'
+  // Capitalisation Title-case pour l'écran screener
+  const upper = scoreLabel(score)
+  return upper.charAt(0) + upper.slice(1).toLowerCase()
 }
 
 const tierColor = {

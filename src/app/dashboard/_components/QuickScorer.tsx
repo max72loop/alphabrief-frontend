@@ -3,7 +3,7 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { C, serif, sans, mono, Gauge } from "@/components/landing/Gauge";
+import { C, serif, sans, mono, Gauge, scoreColor } from "@/components/landing/Gauge";
 
 export type RecentItem = {
   ticker: string;
@@ -19,12 +19,7 @@ export type Suggestion = {
   score: number;
 };
 
-function toneFor(score: number) {
-  if (score >= 75) return C.phosphor;
-  if (score >= 60) return C.phosphorSoft;
-  if (score >= 45) return C.ember;
-  return C.sanguine;
-}
+const toneFor = scoreColor;
 
 export default function QuickScorer({
   suggestions,
