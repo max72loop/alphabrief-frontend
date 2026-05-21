@@ -8,7 +8,7 @@ import DashboardWatchlist, { type WatchRow } from './_components/DashboardWatchl
 import QuickScorer, { type RecentItem, type Suggestion } from './_components/QuickScorer'
 import AlertsAndQuota, { type AlertItem, type Quota } from './_components/AlertsAndQuota'
 import { TickerTape } from '@/components/landing/TickerTape'
-import { SCORE_THRESHOLDS } from '@/components/landing/Gauge'
+import { SCORE_THRESHOLDS } from '@/lib/design'
 import { FREE_DAILY_QUOTA } from '@/lib/quota'
 
 const GUEST_LIMIT = 20
