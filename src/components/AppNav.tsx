@@ -84,12 +84,12 @@ export default async function AppNav({ activePath }: { activePath?: string }) {
         {/* Cmd+K search */}
         {user && <NavSearchBox />}
 
-        {/* Nav principale — primary (visible) + secondary (outils) */}
-        <div className="flex items-center gap-5 ml-6 flex-1 min-w-0">
-          {/* Primary */}
+        {/* Nav principale — 3 liens primaires uniquement.
+            Les outils secondaires (Comparer, Portfolio, Marché, Méthode,
+            Historique) sont accessibles via le ProfilPanel (bouton avatar). */}
+        <div className="flex items-center gap-6 ml-6 flex-1 min-w-0">
           {navLink('/dashboard', 'Édition', ['/dashboard', '/ticker'])}
           {navLink('/watchlist', 'Watchlist')}
-          {navLink('/historique', 'Historique')}
           <Link
             href="/alerts"
             className={`relative text-sm font-medium transition-colors ${
@@ -103,15 +103,6 @@ export default async function AppNav({ activePath }: { activePath?: string }) {
               </span>
             )}
           </Link>
-
-          {/* Séparateur + outils secondaires (cachés < lg pour respecter la respiration mobile) */}
-          <span className="hidden lg:inline-block w-px h-4 bg-[#1A2520] mx-2" aria-hidden="true" />
-          <div className="hidden lg:flex items-center gap-5">
-            {navLink('/compare',   'Comparer')}
-            {navLink('/portfolio', 'Portfolio')}
-            {navLink('/marche',    'Marché')}
-            {navLink('/methode',   'Méthode')}
-          </div>
         </div>
 
         {/* Right */}

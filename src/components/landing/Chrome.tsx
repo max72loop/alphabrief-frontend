@@ -62,7 +62,7 @@ export function LandingFooter() {
       <div className="flex gap-5">
         <Link href="/login" style={{ color: "inherit", textDecoration: "none" }}>CONNEXION</Link>
         <Link href="/pricing" style={{ color: "inherit", textDecoration: "none" }}>TARIFS</Link>
-        <a href="mailto:contact@maxloop.ovh" style={{ color: "inherit", textDecoration: "none" }}>CONTACT</a>
+        <a href="mailto:contact@alphabrief.fr" style={{ color: "inherit", textDecoration: "none" }}>CONTACT</a>
       </div>
     </footer>
   );
