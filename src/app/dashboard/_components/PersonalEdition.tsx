@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { C, serif, mono, Gauge, scoreColor } from "@/components/landing/Gauge";
+import { Gauge } from "@/components/landing/Gauge";
+import { C, serif, mono, scoreColor } from "@/lib/design";
 
 export type EditionItem = {
   ticker: string;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { C, serif, sans, mono } from "@/components/landing/Gauge";
+import { C, serif, sans, mono } from "@/lib/design";
 
 export type AlertItem = {
   ticker: string;
