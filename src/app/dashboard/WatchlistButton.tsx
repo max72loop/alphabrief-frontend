@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function WatchlistButton({
   ticker,
@@ -10,6 +11,7 @@ export default function WatchlistButton({
   initialInWatchlist: boolean
   size?: 'sm' | 'lg'
 }) {
+  const router = useRouter()
   const [inWatchlist, setInWatchlist] = useState(initialInWatchlist)
   const [loading, setLoading] = useState(false)
 
@@ -18,12 +20,31 @@ export default function WatchlistButton({
     e.stopPropagation()
     setLoading(true)
     try {
+      const method = inWatchlist ? 'DELETE' : 'POST'
       const res = await fetch('/api/watchlist', {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticker }),
       })
-      if (res.ok) setInWatchlist(prev => !prev)
+      if (res.ok) {
+        const body = await res.json().catch(() => ({} as { action?: string }))
+        // On se fie à l'action renvoyée pour éviter toute désynchro.
+        if (body.action === 'added' || body.action === 'already_present') {
+          setInWatchlist(true)
+        } else if (body.action === 'removed' || body.action === 'not_present') {
+          setInWatchlist(false)
+        } else {
+          setInWatchlist(prev => !prev)
+        }
+        // Rafraîchit la nav (compteur watchlist) et toute liste server-rendered.
+        router.refresh()
+      } else {
+        const body = await res.json().catch(() => ({} as { error?: string }))
+        // Pas de système de toast pour le moment — on log pour ne rien masquer.
+        console.error('Watchlist toggle failed:', body.error || res.status)
+      }
+    } catch (err) {
+      console.error('Watchlist toggle network error:', err)
     } finally {
       setLoading(false)
     }

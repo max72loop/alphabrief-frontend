@@ -45,23 +45,14 @@ export default function WatchlistClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticker }),
       })
+      const body = await res.json().catch(() => ({} as { error?: string; code?: string; action?: string }))
       if (!res.ok) {
-        if (res.status === 401) {
-          setError("Session expirée. Reconnectez-vous.")
-        } else {
-          const body = await res.json().catch(() => null)
-          setError(body?.error || `Impossible d'ajouter ${ticker} (HTTP ${res.status}).`)
-        }
+        if (res.status === 401) setError('Session expirée. Reconnectez-vous.')
+        else setError(body.error || `Impossible d'ajouter ${ticker} (HTTP ${res.status}).`)
         return false
       }
-      const body = await res.json().catch(() => ({ action: 'added' }))
-      if (body.action === 'removed') {
-        // Le serveur avait déjà le ticker (désynchro), il vient de le retirer.
-        setError(`${ticker} était déjà côté serveur — il vient d'être retiré. Cliquez Ajouter à nouveau pour l'ajouter.`)
-        router.refresh()
-        return false
-      }
-      // Optimistic insert — placeholder le temps que router.refresh() ramène les scores.
+      // 200 already_present : le ticker était déjà en DB sans qu'on le sache localement,
+      // on accepte silencieusement et on resynchronise via router.refresh().
       setItems(prev => prev.some(i => i.ticker === ticker) ? prev : [...prev, {
         ticker, name: ticker, score: 0, prev: 0, hist: [0],
         chg: '', price: '', sector: '',
@@ -82,13 +73,16 @@ export default function WatchlistClient({
     setRemoving(ticker)
     try {
       const res = await fetch('/api/watchlist', {
-        method: 'POST',
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticker }),
       })
       if (res.ok) {
         setItems(prev => prev.filter(i => i.ticker !== ticker))
         router.refresh()
+      } else {
+        const body = await res.json().catch(() => ({} as { error?: string }))
+        setError(body.error || `Impossible de retirer ${ticker}.`)
       }
     } finally {
       setRemoving(null)
