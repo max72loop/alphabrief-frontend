@@ -1,214 +1,173 @@
 'use client'
-import { useState } from 'react'
+
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-
-type ScoreInfo = {
-  ticker: string
-  company_name: string | null
-  score_total: number
-  score_label: string | null
-  score_date: string
-  market_data: { rsi_14?: number | null; momentum_3m?: number | null } | null
-}
-
-function scoreTier(s: number) {
-  if (s >= 65) return 'high'
-  if (s >= 40) return 'mid'
-  return 'low'
-}
-function scoreLabel(s: number) {
-  if (s >= 75) return 'EXCELLENT'
-  if (s >= 60) return 'BON'
-  if (s >= 45) return 'NEUTRE'
-  if (s >= 30) return 'ATTENTION'
-  return 'RISQUÉ'
-}
-const tierColor = { high: 'text-[#7EE5A3]', mid: 'text-[#E5A04E]', low: 'text-[#D85F66]' }
-const tierBg    = {
-  high: 'bg-[#7EE5A3]/10 border-[#7EE5A3]/30',
-  mid:  'bg-[#E5A04E]/10 border-[#E5A04E]/30',
-  low:  'bg-[#D85F66]/10 border-[#D85F66]/30',
-}
-
-const mono = 'var(--font-jetbrains-mono, monospace)'
+import { C, serif, sans, mono } from '@/components/landing/Gauge'
+import type { WatchlistItem } from '@/components/watchlist/types'
+import { WatchlistSubnav, type TabKey } from '@/components/watchlist/Subnav'
+import { WatchlistMasthead } from '@/components/watchlist/Masthead'
+import { WatchlistHero } from '@/components/watchlist/HeroMovers'
+import { Constellation } from '@/components/watchlist/Constellation'
+import { EditorialTable } from '@/components/watchlist/EditorialTable'
+import { SectorMap } from '@/components/watchlist/SectorMap'
+import { WatchlistBottomCTA } from '@/components/watchlist/BottomCTA'
 
 export default function WatchlistClient({
-  initialTickers,
-  scoreMap,
+  initialItems,
+  isPremium,
+  todayLabel,
 }: {
-  initialTickers: string[]
-  scoreMap: Record<string, ScoreInfo>
-  watchlistId: string | null
+  initialItems: WatchlistItem[]
+  isPremium: boolean
+  todayLabel: string
 }) {
-  const [tickers, setTickers] = useState(initialTickers)
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState<string | null>(null)
-  const [error, setError] = useState('')
   const router = useRouter()
+  const [items, setItems] = useState<WatchlistItem[]>(initialItems)
+  const [tab, setTab] = useState<TabKey>('all')
+  const [adding, setAdding] = useState(false)
+  const [removing, setRemoving] = useState<string | null>(null)
+  const [error, setError] = useState('')
 
-  const add = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const ticker = input.trim().toUpperCase()
-    if (!ticker || tickers.includes(ticker)) return
-    setLoading('add')
-    setError('')
-    const res = await fetch('/api/watchlist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticker }),
-    })
-    if (res.ok) {
-      setTickers(prev => [...prev, ticker])
-      setInput('')
-      router.refresh()
-    } else {
-      setError("Erreur lors de l'ajout")
+  useEffect(() => { setItems(initialItems) }, [initialItems])
+
+  const add = async (ticker: string): Promise<boolean> => {
+    if (!ticker || items.some(i => i.ticker === ticker)) {
+      setError(ticker ? 'Ce titre est déjà dans votre watchlist.' : '')
+      return false
     }
-    setLoading(null)
+    setAdding(true)
+    setError('')
+    try {
+      const res = await fetch('/api/watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticker }),
+      })
+      if (!res.ok) {
+        setError("Impossible d'ajouter ce titre — vérifiez le ticker et réessayez.")
+        return false
+      }
+      router.refresh()
+      return true
+    } catch {
+      setError('Erreur réseau. Réessayez.')
+      return false
+    } finally {
+      setAdding(false)
+    }
   }
 
   const remove = async (ticker: string) => {
-    setLoading(ticker)
-    const res = await fetch('/api/watchlist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticker }),
-    })
-    if (res.ok) {
-      setTickers(prev => prev.filter(t => t !== ticker))
-      router.refresh()
+    setRemoving(ticker)
+    try {
+      const res = await fetch('/api/watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticker }),
+      })
+      if (res.ok) {
+        setItems(prev => prev.filter(i => i.ticker !== ticker))
+        router.refresh()
+      }
+    } finally {
+      setRemoving(null)
     }
-    setLoading(null)
   }
 
-  return (
-    <div>
-      {/* Add form */}
-      <form onSubmit={add} className="rounded-xl border border-[#1A2520] bg-[#0E1511] p-4 mb-6">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value.toUpperCase())}
-            placeholder="Ex: AAPL, MC.PA, 9988.HK"
-            className="flex-1 px-3 py-2 rounded-lg bg-[#13201A] border border-[#1A2520] text-sm text-[#F0EBDB] placeholder-[#4A6355] focus:border-[#7EE5A3]/50 outline-none"
-            style={{ fontFamily: mono }}
-          />
-          <button
-            type="submit"
-            disabled={loading === 'add'}
-            className="px-4 py-2 rounded-lg bg-[#7EE5A3] hover:bg-[#9AEDB5] disabled:opacity-50 text-sm font-semibold text-[#0A0F0C] transition-colors"
-          >
-            Ajouter
-          </button>
-        </div>
-        {error && <p className="text-[#D85F66] text-xs mt-2">{error}</p>}
-      </form>
+  const filtered = useMemo(() => {
+    switch (tab) {
+      case 'movers': return items.filter(t => Math.abs(t.score - t.prev) >= 3)
+      case 'alerts': return items.filter(t => t.alert)
+      case 'strong': return items.filter(t => t.score >= 70)
+      case 'weak':   return items.filter(t => t.score < 50)
+      default:       return items
+    }
+  }, [items, tab])
 
-      {tickers.length === 0 ? (
-        <div className="rounded-xl border border-[#1A2520] bg-[#0E1511] p-10 text-center">
-          <p className="font-medium mb-2 text-[#C6C0A9]"
-            style={{ fontFamily: 'var(--font-fraunces, serif)', fontStyle: 'italic', fontSize: 17 }}>
-            Votre watchlist est vide.
-          </p>
-          <p className="text-[#6D7A72] text-sm mb-5">Ajoutez un ticker pour générer votre premier score.</p>
-          <div className="flex gap-2 justify-center">
-            {['AAPL', 'MC.PA', 'MSFT'].map(t => (
-              <button key={t} onClick={() => setInput(t)}
-                className="px-3 py-1 rounded-lg bg-[#13201A] border border-[#1A2520] text-xs text-[#6D7A72] hover:text-[#F0EBDB] hover:border-[#7EE5A3]/30 transition-colors"
-                style={{ fontFamily: mono, letterSpacing: '0.06em' }}>
-                {t}
-              </button>
-            ))}
+  if (initialItems.length === 0) {
+    return (
+      <main style={{ maxWidth: 1320, margin: '0 auto', padding: '24px 40px 60px' }}>
+        <WatchlistSubnav
+          items={items}
+          active={tab}
+          onChange={setTab}
+          onAdd={add}
+          adding={adding}
+          errorMessage={error}
+          todayLabel={todayLabel}
+        />
+        <section style={{ padding: '60px 0 0' }}>
+          <div style={{
+            borderTop: `2px solid ${C.ink}`, borderBottom: `1px solid ${C.rule}`,
+            padding: '26px 0 32px',
+          }}>
+            <div style={{ fontFamily: mono, fontSize: 11, color: C.phosphor, letterSpacing: '0.22em', marginBottom: 18 }}>
+              § L&apos;ALMANACH DES SUIVIS
+            </div>
+            <h1 style={{ fontFamily: serif, fontSize: 64, fontWeight: 500, lineHeight: 0.95, letterSpacing: '-0.035em', color: C.ink, margin: 0 }}>
+              Votre <span style={{ fontStyle: 'italic', color: C.phosphor }}>watchlist</span> est vide.
+            </h1>
+            <p style={{ fontFamily: serif, fontStyle: 'italic', fontSize: 19, color: C.inkDim, marginTop: 22, marginBottom: 0, maxWidth: 580, fontWeight: 500 }}>
+              Ajoutez votre premier ticker pour faire apparaître l&apos;almanach — masthead, mouvements, constellation et secteurs se composent à partir de vos titres.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 28 }}>
+              {['AAPL', 'NVDA', 'MSFT', 'MC.PA'].map(sym => (
+                <button
+                  key={sym}
+                  onClick={() => add(sym)}
+                  disabled={adding}
+                  style={{
+                    padding: '8px 14px', background: C.bgCard, border: `1px solid ${C.rule}`,
+                    borderRadius: 8, color: C.inkDim, fontFamily: mono, fontSize: 12,
+                    letterSpacing: '0.06em', cursor: adding ? 'wait' : 'pointer',
+                  }}
+                >
+                  + {sym}
+                </button>
+              ))}
+              <Link
+                href="/dashboard"
+                style={{
+                  padding: '8px 14px', background: C.phosphor, color: C.bg,
+                  fontFamily: sans, fontSize: 13, fontWeight: 600, borderRadius: 8,
+                  textDecoration: 'none',
+                }}
+              >
+                Parcourir le screener →
+              </Link>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-[#1A2520] bg-[#0E1511] overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#1A2520]">
-                {[
-                  { label: 'Ticker', align: 'text-left' },
-                  { label: 'Score',  align: 'text-center' },
-                  { label: 'RSI',    align: 'text-right hidden md:table-cell' },
-                  { label: 'Mom 3M', align: 'text-right hidden md:table-cell' },
-                  { label: 'Mis à jour', align: 'text-right hidden lg:table-cell' },
-                ].map(c => (
-                  <th key={c.label} className={`${c.align} px-5 py-3 text-[10px] uppercase tracking-[0.16em] text-[#6D7A72]`}
-                    style={{ fontFamily: mono }}>
-                    {c.label}
-                  </th>
-                ))}
-                <th className="w-20 px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#1A2520]">
-              {tickers.map(ticker => {
-                const info = scoreMap[ticker]
-                const tier = info ? scoreTier(info.score_total) : null
-                const rsi = info?.market_data?.rsi_14
-                const mom3m = info?.market_data?.momentum_3m
-                return (
-                  <tr key={ticker} className="hover:bg-[#13201A] transition-colors">
-                    <td className="px-5 py-4">
-                      <Link href={`/ticker/${ticker}`} className="font-bold text-[#F0EBDB] hover:text-[#7EE5A3] transition-colors">
-                        {info?.company_name || ticker}
-                      </Link>
-                      {info?.company_name && (
-                        <div className="text-[10px] uppercase tracking-[0.14em] text-[#4A6355] mt-0.5"
-                          style={{ fontFamily: mono }}>{ticker}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      {info && tier ? (
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border ${tierColor[tier]} ${tierBg[tier]}`}
-                          style={{ fontFamily: mono, letterSpacing: '0.1em' }}>
-                          <span className="text-sm font-extrabold">{info.score_total}</span>
-                          <span className="opacity-80">{scoreLabel(info.score_total)}</span>
-                        </span>
-                      ) : (
-                        <span className="text-[#4A6355] text-xs">—</span>
-                      )}
-                    </td>
-                    <td className={`px-4 py-4 text-right tabular-nums text-sm hidden md:table-cell ${rsi != null && rsi > 70 ? 'text-[#D85F66]' : rsi != null && rsi < 30 ? 'text-[#5AB983]' : 'text-[#6D7A72]'}`}
-                      style={{ fontFamily: mono }}>
-                      {rsi != null ? rsi.toFixed(1) : '—'}
-                    </td>
-                    <td className={`px-4 py-4 text-right tabular-nums text-sm hidden md:table-cell ${mom3m != null && mom3m > 0 ? 'text-[#7EE5A3]' : mom3m != null && mom3m < 0 ? 'text-[#D85F66]' : 'text-[#6D7A72]'}`}
-                      style={{ fontFamily: mono }}>
-                      {mom3m != null ? (mom3m >= 0 ? '+' : '') + mom3m.toFixed(1) + '%' : '—'}
-                    </td>
-                    <td className="px-5 py-4 text-right text-[10px] text-[#4A6355] hidden lg:table-cell"
-                      style={{ fontFamily: mono, letterSpacing: '0.1em' }}>
-                      {info?.score_date?.slice(0, 10) || '—'}
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2 justify-end">
-                        <Link href={`/ticker/${ticker}`}
-                          className="p-1.5 rounded-lg bg-[#13201A] hover:bg-[#7EE5A3]/15 hover:text-[#7EE5A3] text-[#6D7A72] transition-colors" title="Voir le détail">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
-                          </svg>
-                        </Link>
-                        <button
-                          onClick={() => remove(ticker)}
-                          disabled={loading === ticker}
-                          className="p-1.5 rounded-lg bg-[#13201A] hover:bg-[#D85F66]/12 hover:text-[#D85F66] text-[#6D7A72] disabled:opacity-40 transition-colors" title="Supprimer">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                            <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+        </section>
+      </main>
+    )
+  }
+
+  const suggestionA = items.find(i => i.score >= 70)?.ticker || items[0]?.ticker
+  const suggestionB = items.find(i => i.score < 50)?.ticker || items[items.length - 1]?.ticker
+
+  return (
+    <>
+      <WatchlistSubnav
+        items={items}
+        active={tab}
+        onChange={setTab}
+        onAdd={add}
+        adding={adding}
+        errorMessage={error}
+        todayLabel={todayLabel}
+      />
+      <WatchlistMasthead items={filtered} />
+      <WatchlistHero items={filtered} />
+      <Constellation items={filtered} />
+      <EditorialTable items={filtered} onRemove={remove} removing={removing} />
+      <SectorMap items={filtered} />
+      <WatchlistBottomCTA
+        count={items.length}
+        isPremium={isPremium}
+        suggestionA={suggestionA}
+        suggestionB={suggestionB}
+      />
+    </>
   )
 }

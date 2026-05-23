@@ -124,3 +124,44 @@ input[type="range"].ab-score-slider::-moz-range-thumb {
     border-right: none !important;
   }
 }
+
+/* watchlist editorial layout */
+.ab-wl-row {
+  display: grid;
+  grid-template-columns: 52px 1.4fr 84px 100px 120px 1.1fr 90px;
+}
+
+@media (max-width: 1024px) {
+  .ab-wl-masthead-grid {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+  .ab-wl-hero-grid,
+  .ab-wl-sector-grid,
+  .ab-wl-cta-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .ab-wl-row {
+    grid-template-columns: 44px 1.4fr 70px 80px 90px;
+  }
+  .ab-wl-row > :nth-child(6),
+  .ab-wl-row > :nth-child(7),
+  .ab-wl-head > :nth-child(6),
+  .ab-wl-head > :nth-child(7) {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .ab-wl-row {
+    grid-template-columns: 44px 1fr 70px 70px !important;
+    row-gap: 8px;
+  }
+  .ab-wl-row > :nth-child(5),
+  .ab-wl-head > :nth-child(5) {
+    display: none;
+  }
+  .ab-wl-head {
+    display: none !important;
+  }
+}
