@@ -18,7 +18,6 @@ type Props = {
 }
 
 export function WatchlistSubnav({ items, active, onChange, onAdd, adding, errorMessage, todayLabel }: Props) {
-  const [open, setOpen] = useState(false)
   const [value, setValue] = useState("")
 
   const counts = {
@@ -42,10 +41,7 @@ export function WatchlistSubnav({ items, active, onChange, onAdd, adding, errorM
     const t = value.trim().toUpperCase()
     if (!t) return
     const ok = await onAdd(t)
-    if (ok) {
-      setValue("")
-      setOpen(false)
-    }
+    if (ok) setValue("")
   }
 
   return (
@@ -62,12 +58,62 @@ export function WatchlistSubnav({ items, active, onChange, onAdd, adding, errorM
         <span>{todayLabel}</span>
       </div>
 
+      <form
+        onSubmit={submit}
+        style={{
+          marginTop: 14, padding: "12px 14px",
+          background: C.bgCard, border: `1px solid ${C.rule}`, borderRadius: 10,
+          display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap",
+        }}
+      >
+        <span style={{ fontFamily: mono, fontSize: 11, color: C.phosphor, letterSpacing: "0.14em" }}>+</span>
+        <input
+          type="text"
+          value={value}
+          onChange={e => setValue(e.target.value.toUpperCase())}
+          placeholder="Ajouter un ticker · ex AAPL, MC.PA, 9988.HK"
+          autoComplete="off"
+          spellCheck={false}
+          style={{
+            flex: 1, minWidth: 220,
+            background: C.bg, border: `1px solid ${C.rule}`, borderRadius: 8,
+            padding: "10px 12px", outline: "none", color: C.ink,
+            fontFamily: mono, fontSize: 13, letterSpacing: "0.04em",
+          }}
+        />
+        <button
+          type="submit"
+          disabled={adding || !value.trim()}
+          style={{
+            padding: "10px 18px",
+            background: adding || !value.trim() ? C.bgElev : C.phosphor,
+            color: adding || !value.trim() ? C.muted : C.bg,
+            fontFamily: sans, fontSize: 13, fontWeight: 600,
+            border: "none", borderRadius: 8,
+            cursor: adding ? "wait" : !value.trim() ? "not-allowed" : "pointer",
+          }}
+        >
+          {adding ? "Ajout…" : "Ajouter →"}
+        </button>
+      </form>
+
+      {errorMessage && (
+        <div style={{
+          marginTop: 10, padding: "10px 14px",
+          background: `${C.sanguine}10`, border: `1px solid ${C.sanguine}40`,
+          borderRadius: 8, fontFamily: mono, fontSize: 11, color: C.sanguine,
+        }}>
+          {errorMessage}
+        </div>
+      )}
+
       <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "14px 0 0", flexWrap: "wrap" }}>
         {tabs.map(t => {
           const on = active === t.id
           return (
             <button
               key={t.id}
+              type="button"
               onClick={() => onChange(t.id)}
               style={{
                 padding: "8px 14px",
@@ -90,64 +136,7 @@ export function WatchlistSubnav({ items, active, onChange, onAdd, adding, errorM
             </button>
           )
         })}
-        <span style={{ flex: 1 }} />
-        <button
-          onClick={() => setOpen(o => !o)}
-          style={{
-            padding: "8px 14px", background: "transparent", border: `1px dashed ${C.rule}`,
-            color: open ? C.phosphor : C.inkDim, fontFamily: mono, fontSize: 11, letterSpacing: "0.1em",
-            borderRadius: 8, cursor: "pointer",
-          }}
-        >
-          {open ? "× FERMER" : "+ AJOUTER UN TITRE"}
-        </button>
       </div>
-
-      {open && (
-        <form
-          onSubmit={submit}
-          style={{
-            marginTop: 14, padding: "14px 16px",
-            background: C.bgCard, border: `1px solid ${C.rule}`, borderRadius: 10,
-            display: "flex", gap: 10, alignItems: "center",
-          }}
-        >
-          <span style={{ fontFamily: mono, fontSize: 11, color: C.phosphor, letterSpacing: "0.14em" }}>›</span>
-          <input
-            value={value}
-            onChange={e => setValue(e.target.value.toUpperCase())}
-            placeholder="Ex : AAPL, MC.PA, 9988.HK"
-            autoFocus
-            style={{
-              flex: 1, background: C.bg, border: `1px solid ${C.rule}`, borderRadius: 8,
-              padding: "10px 12px", outline: "none", color: C.ink,
-              fontFamily: mono, fontSize: 13, letterSpacing: "0.04em",
-            }}
-          />
-          <button
-            type="submit"
-            disabled={adding}
-            style={{
-              padding: "10px 18px", background: C.phosphor, color: C.bg,
-              fontFamily: sans, fontSize: 13, fontWeight: 600,
-              border: "none", borderRadius: 8, cursor: adding ? "wait" : "pointer",
-              opacity: adding ? 0.6 : 1,
-            }}
-          >
-            {adding ? "Ajout…" : "Ajouter →"}
-          </button>
-        </form>
-      )}
-
-      {errorMessage && (
-        <div style={{
-          marginTop: 10, padding: "8px 12px",
-          background: `${C.sanguine}10`, border: `1px solid ${C.sanguine}40`,
-          borderRadius: 8, fontFamily: mono, fontSize: 11, color: C.sanguine,
-        }}>
-          {errorMessage}
-        </div>
-      )}
     </section>
   )
 }

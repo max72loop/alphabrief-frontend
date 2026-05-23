@@ -32,8 +32,9 @@ export default function WatchlistClient({
   useEffect(() => { setItems(initialItems) }, [initialItems])
 
   const add = async (ticker: string): Promise<boolean> => {
-    if (!ticker || items.some(i => i.ticker === ticker)) {
-      setError(ticker ? 'Ce titre est déjà dans votre watchlist.' : '')
+    if (!ticker) return false
+    if (items.some(i => i.ticker === ticker)) {
+      setError(`${ticker} est déjà dans votre watchlist.`)
       return false
     }
     setAdding(true)
@@ -45,13 +46,32 @@ export default function WatchlistClient({
         body: JSON.stringify({ ticker }),
       })
       if (!res.ok) {
-        setError("Impossible d'ajouter ce titre — vérifiez le ticker et réessayez.")
+        if (res.status === 401) {
+          setError("Session expirée. Reconnectez-vous.")
+        } else {
+          const body = await res.json().catch(() => null)
+          setError(body?.error || `Impossible d'ajouter ${ticker} (HTTP ${res.status}).`)
+        }
         return false
       }
+      const body = await res.json().catch(() => ({ action: 'added' }))
+      if (body.action === 'removed') {
+        // Le serveur avait déjà le ticker (désynchro), il vient de le retirer.
+        setError(`${ticker} était déjà côté serveur — il vient d'être retiré. Cliquez Ajouter à nouveau pour l'ajouter.`)
+        router.refresh()
+        return false
+      }
+      // Optimistic insert — placeholder le temps que router.refresh() ramène les scores.
+      setItems(prev => prev.some(i => i.ticker === ticker) ? prev : [...prev, {
+        ticker, name: ticker, score: 0, prev: 0, hist: [0],
+        chg: '', price: '', sector: '',
+        fund: 0, tech: 0, mom: 0,
+        alert: false, note: 'Score en cours de calcul.', added: '',
+      }])
       router.refresh()
       return true
     } catch {
-      setError('Erreur réseau. Réessayez.')
+      setError('Erreur réseau. Vérifiez votre connexion et réessayez.')
       return false
     } finally {
       setAdding(false)
@@ -85,7 +105,7 @@ export default function WatchlistClient({
     }
   }, [items, tab])
 
-  if (initialItems.length === 0) {
+  if (items.length === 0) {
     return (
       <main style={{ maxWidth: 1320, margin: '0 auto', padding: '24px 40px 60px' }}>
         <WatchlistSubnav
