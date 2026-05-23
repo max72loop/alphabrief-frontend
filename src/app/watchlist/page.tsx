@@ -73,15 +73,28 @@ export default async function WatchlistPage() {
   const { data: wl } = await supabase
     .from('watchlists').select('id').eq('user_id', user.id).maybeSingle()
 
-  const { data: rawItems } = wl
-    ? await supabase.from('watchlist_tickers')
-        .select('ticker, created_at')
-        .eq('watchlist_id', wl.id)
-        .order('created_at', { ascending: true })
-    : { data: [] as { ticker: string; created_at: string | null }[] }
+  // Tente avec created_at (pour afficher "Suivi depuis"). Si la colonne n'existe
+  // pas sur watchlist_tickers (table créée manuellement, schéma non versionné),
+  // on retombe sur un select(ticker) basique — sinon toute la watchlist apparaît
+  // vide alors que les rows sont bien en DB.
+  let rawItems: Array<{ ticker: string; created_at: string | null }> = []
+  if (wl) {
+    const withDate = await supabase.from('watchlist_tickers')
+      .select('ticker, created_at')
+      .eq('watchlist_id', wl.id)
+      .order('created_at', { ascending: true })
+    if (withDate.error?.code === '42703') {
+      // 42703 = PostgreSQL undefined_column.
+      const fallback = await supabase.from('watchlist_tickers')
+        .select('ticker').eq('watchlist_id', wl.id)
+      rawItems = (fallback.data ?? []).map(r => ({ ticker: r.ticker, created_at: null }))
+    } else {
+      rawItems = withDate.data ?? []
+    }
+  }
 
-  const tickers = (rawItems ?? []).map(i => i.ticker)
-  const addedMap = Object.fromEntries((rawItems ?? []).map(i => [i.ticker, i.created_at]))
+  const tickers = rawItems.map(i => i.ticker)
+  const addedMap = Object.fromEntries(rawItems.map(i => [i.ticker, i.created_at]))
 
   const [scoresResult, historyResult, alertsResult, profileResult] = await Promise.all([
     tickers.length
