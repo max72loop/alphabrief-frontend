@@ -156,16 +156,17 @@ export default function PersonalEdition({
                 <div
                   style={{
                     fontFamily: serif,
-                    fontSize: 28,
+                    fontSize: 26,
                     fontWeight: 600,
                     color: C.ink,
                     letterSpacing: "-0.02em",
+                    lineHeight: 1.1,
                   }}
                 >
-                  {it.ticker}
+                  {it.name ?? it.ticker}
                 </div>
-                <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.08em" }}>
-                  {(it.name ?? it.ticker).toUpperCase()}
+                <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.14em", marginTop: 4 }}>
+                  {it.ticker}
                 </div>
               </div>
 

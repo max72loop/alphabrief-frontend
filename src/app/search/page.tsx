@@ -63,12 +63,25 @@ export default async function SearchPage({
               <li key={r.ticker} className="py-4">
                 <Link
                   href={`/ticker/${r.ticker}`}
-                  className="flex items-baseline gap-4 hover:bg-[#13201A]/50 -mx-3 px-3 py-2 rounded-lg transition-colors"
+                  className="flex items-center gap-4 hover:bg-[#13201A]/50 -mx-3 px-3 py-3 rounded-lg transition-colors"
                 >
-                  <span className="font-mono text-base font-bold text-[#F0EBDB] w-20 shrink-0">{r.ticker}</span>
-                  <span className="flex-1 text-sm text-[#F0EBDB] truncate">{r.company_name ?? '—'}</span>
-                  <span className="text-xs text-[#6D7A72] hidden sm:inline">{r.sector ?? ''}</span>
-                  <span className="font-mono text-sm font-bold text-[#7EE5A3] w-10 text-right">
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className="text-lg font-medium text-[#F0EBDB] truncate"
+                      style={{ fontFamily: 'var(--font-fraunces, serif)', letterSpacing: '-0.01em' }}
+                    >
+                      {r.company_name ?? r.ticker}
+                    </div>
+                    <div
+                      className="text-[11px] text-[#6D7A72] mt-0.5 uppercase tracking-[0.14em]"
+                      style={{ fontFamily: 'var(--font-jetbrains-mono, monospace)' }}
+                    >
+                      {r.ticker}{r.sector ? ` · ${r.sector}` : ''}
+                    </div>
+                  </div>
+                  <span
+                    className="font-mono text-base font-bold text-[#7EE5A3] w-12 text-right shrink-0"
+                  >
                     {Math.round(r.score_total)}
                   </span>
                 </Link>

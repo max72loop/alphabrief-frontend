@@ -33,9 +33,10 @@ export default function QuickScorer({
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const t = query.trim().toUpperCase();
+    const t = query.trim();
     if (!t) return;
-    router.push(`/ticker/${encodeURIComponent(t)}`);
+    // Délègue à /search qui résout ticker exact OU nom flou (cf. app/search/page.tsx).
+    router.push(`/search?q=${encodeURIComponent(t)}`);
   };
 
   return (
@@ -162,24 +163,24 @@ export default function QuickScorer({
                   <button
                     type="button"
                     key={s.ticker}
-                    onClick={() => setQuery(s.ticker)}
+                    onClick={() => setQuery(s.name ?? s.ticker)}
                     style={{
                       padding: "7px 12px",
                       background: "transparent",
                       border: `1px solid ${C.rule}`,
                       borderRadius: 4,
                       color: C.inkDim,
-                      fontFamily: mono,
-                      fontSize: 11,
+                      fontFamily: sans,
+                      fontSize: 12,
                       cursor: "pointer",
                       display: "inline-flex",
                       gap: 8,
-                      alignItems: "center",
+                      alignItems: "baseline",
                     }}
                   >
-                    <span style={{ color: C.ink, fontWeight: 600 }}>{s.ticker}</span>
-                    <span style={{ color: C.muted }}>
-                      {s.sector ?? "—"} · score {s.score}
+                    <span style={{ color: C.ink, fontWeight: 600 }}>{s.name ?? s.ticker}</span>
+                    <span style={{ color: C.muted, fontFamily: mono, fontSize: 10, letterSpacing: "0.1em" }}>
+                      {s.ticker} · {s.score}
                     </span>
                   </button>
                 ))}
@@ -247,23 +248,21 @@ export default function QuickScorer({
               >
                 <Gauge value={r.score} size={32} stroke={4} showNumeral={false} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                    <span style={{ fontFamily: serif, fontSize: 16, fontWeight: 600, color: C.ink }}>{r.ticker}</span>
-                    <span
-                      style={{
-                        fontFamily: sans,
-                        fontSize: 12,
-                        color: C.inkDim,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {r.name ?? ""}
-                    </span>
+                  <div
+                    style={{
+                      fontFamily: serif,
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: C.ink,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {r.name ?? r.ticker}
                   </div>
-                  <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.08em", marginTop: 2 }}>
-                    {r.when.toUpperCase()}
+                  <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", marginTop: 2 }}>
+                    {r.ticker} · {r.when.toUpperCase()}
                   </div>
                 </div>
                 <div

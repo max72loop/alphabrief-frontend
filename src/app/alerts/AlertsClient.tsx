@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 type Alert = {
   id: string
   ticker: string
+  company_name?: string | null
   alert_type: string
   score_old: number | null
   score_new: number
@@ -72,12 +73,21 @@ function AlertsClient({ initialAlerts }: { initialAlerts: Alert[] }) {
           <div className="flex-1 min-w-0">
             <Link
               href={`/ticker/${alert.ticker}`}
-              className="font-bold text-[#F0EBDB] hover:text-[#7EE5A3] transition-colors"
-              style={{ fontFamily: 'var(--font-jetbrains-mono, monospace)', letterSpacing: '0.04em' }}
+              className="block font-medium text-[#F0EBDB] hover:text-[#7EE5A3] transition-colors truncate"
+              style={{ fontFamily: 'var(--font-fraunces, serif)', fontSize: 16, letterSpacing: '-0.01em' }}
+              title={alert.ticker}
             >
-              {alert.ticker}
+              {alert.company_name ?? alert.ticker}
             </Link>
-            {alert.message && <p className="text-sm text-[#C6C0A9] mt-0.5">{alert.message}</p>}
+            {alert.company_name && (
+              <div
+                className="text-[10px] text-[#6D7A72] uppercase tracking-[0.14em] mt-0.5"
+                style={{ fontFamily: 'var(--font-jetbrains-mono, monospace)' }}
+              >
+                {alert.ticker}
+              </div>
+            )}
+            {alert.message && <p className="text-sm text-[#C6C0A9] mt-1">{alert.message}</p>}
             {alert.score_old != null && (
               <p className="text-xs text-[#6D7A72] mt-1"
                 style={{ fontFamily: 'var(--font-jetbrains-mono, monospace)' }}>

@@ -80,8 +80,13 @@ export default async function HistoriquePage() {
                     <div className="text-xs text-[#6D7A72] flex flex-wrap gap-x-4 gap-y-1">
                       <span>{ed.count} analyses</span>
                       {ed.top.map(t => (
-                        <Link key={t.ticker} href={`/ticker/${t.ticker}`} className="hover:text-[#7EE5A3] transition-colors">
-                          {t.ticker} · {Math.round(t.score_total)}
+                        <Link
+                          key={t.ticker}
+                          href={`/ticker/${t.ticker}`}
+                          className="hover:text-[#7EE5A3] transition-colors"
+                          title={t.ticker}
+                        >
+                          {t.company_name ?? t.ticker} · {Math.round(t.score_total)}
                         </Link>
                       ))}
                     </div>

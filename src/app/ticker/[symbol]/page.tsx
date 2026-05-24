@@ -259,12 +259,19 @@ function DetailsSubnav({ row, ticker, inWatchlist }: {
         maxWidth: 1320, margin: '0 auto', padding: '0 40px',
         display: 'flex', alignItems: 'center', gap: 24, height: 52,
       }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-          <span style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, letterSpacing: '-0.02em' }}>
-            {ticker}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0 }}>
+          <span
+            style={{
+              fontFamily: serif, fontSize: 18, fontWeight: 600, color: C.ink,
+              letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              maxWidth: 280,
+            }}
+            title={row.company_name ?? ticker}
+          >
+            {row.company_name ?? ticker}
           </span>
-          <span style={{ fontFamily: sans, fontSize: 12, color: C.muted }}>
-            {row.company_name ?? ''}
+          <span style={{ fontFamily: mono, fontSize: 11, color: C.muted, letterSpacing: '0.1em' }}>
+            {ticker}
           </span>
         </div>
 
@@ -936,15 +943,15 @@ function PeersComparison({ row, peers }: { row: TickerScore; peers: PeerRow[] })
               }} />
             )}
             <Gauge value={p.score_total} size={48} stroke={5} showNumeral={false} />
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                 {p.isYou ? (
                   <span style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, letterSpacing: '-0.02em' }}>
-                    {p.ticker}
+                    {p.company_name ?? p.ticker}
                   </span>
                 ) : (
                   <Link href={`/ticker/${p.ticker}`} style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, letterSpacing: '-0.02em', textDecoration: 'none' }}>
-                    {p.ticker}
+                    {p.company_name ?? p.ticker}
                   </Link>
                 )}
                 {p.isYou && (
@@ -956,8 +963,8 @@ function PeersComparison({ row, peers }: { row: TickerScore; peers: PeerRow[] })
                   </span>
                 )}
               </div>
-              <div style={{ fontFamily: sans, fontSize: 13, color: C.inkDim, marginTop: 2 }}>
-                {p.company_name ?? '—'}
+              <div style={{ fontFamily: mono, fontSize: 11, color: C.muted, letterSpacing: '0.12em', marginTop: 4 }}>
+                {p.ticker}
               </div>
             </div>
             <div style={{

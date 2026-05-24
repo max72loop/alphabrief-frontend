@@ -106,7 +106,10 @@ export default async function ComparePage({
     .select('ticker,company_name,sector,score_total,score_label,financials,market_data')
     .order('score_total', { ascending: false })
 
-  const tickers = (allRows ?? []).map(r => r.ticker as string)
+  const tickers = (allRows ?? []).map(r => ({
+    ticker: r.ticker as string,
+    name: r.company_name as string | null,
+  }))
   const rowMap = Object.fromEntries((allRows ?? []).map(r => [r.ticker, r as Row]))
 
   const rowA = tickerA ? rowMap[tickerA] ?? null : null
@@ -155,7 +158,7 @@ export default async function ComparePage({
           <div className="text-center py-20">
             <p className="font-medium mb-2 text-[#C6C0A9]"
               style={{ fontFamily: 'var(--font-fraunces, serif)', fontStyle: 'italic', fontSize: 17 }}>
-              Choisissez deux tickers pour lancer la comparaison.
+              Choisissez deux entreprises pour lancer la comparaison.
             </p>
             <p className="text-sm text-[#6D7A72]">Les données viennent directement des scores calculés.</p>
           </div>
@@ -204,20 +207,30 @@ export default async function ComparePage({
                 <tr className="border-b border-[#1A2520]">
                   <th className="px-5 py-3 text-left"></th>
                   <th className="px-5 py-4 text-center border-l border-[#1A2520]">
-                    <Link href={`/ticker/${tickerA}`} className="text-base font-bold text-[#F0EBDB] hover:text-[#7EE5A3] transition-colors"
-                      style={{ fontFamily: mono }}>
-                      {tickerA}
+                    <Link
+                      href={`/ticker/${tickerA}`}
+                      className="block text-base font-medium text-[#F0EBDB] hover:text-[#7EE5A3] transition-colors truncate"
+                      style={{ fontFamily: 'var(--font-fraunces, serif)', letterSpacing: '-0.01em' }}
+                      title={tickerA}
+                    >
+                      {rowA.company_name ?? tickerA}
                     </Link>
-                    <p className="text-xs text-[#6D7A72] font-normal mt-0.5 truncate">{rowA.company_name}</p>
-                    <p className="text-[10px] text-[#4A6355] font-normal uppercase tracking-[0.12em]" style={{ fontFamily: mono }}>{rowA.sector || '—'}</p>
+                    <p className="text-[10px] text-[#6D7A72] font-normal mt-1 uppercase tracking-[0.14em]" style={{ fontFamily: mono }}>
+                      {tickerA}{rowA.sector ? ` · ${rowA.sector}` : ''}
+                    </p>
                   </th>
                   <th className="px-5 py-4 text-center border-l border-[#1A2520]">
-                    <Link href={`/ticker/${tickerB}`} className="text-base font-bold text-[#F0EBDB] hover:text-[#7EE5A3] transition-colors"
-                      style={{ fontFamily: mono }}>
-                      {tickerB}
+                    <Link
+                      href={`/ticker/${tickerB}`}
+                      className="block text-base font-medium text-[#F0EBDB] hover:text-[#7EE5A3] transition-colors truncate"
+                      style={{ fontFamily: 'var(--font-fraunces, serif)', letterSpacing: '-0.01em' }}
+                      title={tickerB}
+                    >
+                      {rowB.company_name ?? tickerB}
                     </Link>
-                    <p className="text-xs text-[#6D7A72] font-normal mt-0.5 truncate">{rowB.company_name}</p>
-                    <p className="text-[10px] text-[#4A6355] font-normal uppercase tracking-[0.12em]" style={{ fontFamily: mono }}>{rowB.sector || '—'}</p>
+                    <p className="text-[10px] text-[#6D7A72] font-normal mt-1 uppercase tracking-[0.14em]" style={{ fontFamily: mono }}>
+                      {tickerB}{rowB.sector ? ` · ${rowB.sector}` : ''}
+                    </p>
                   </th>
                 </tr>
                 <tr className="bg-[#13201A]/50 border-b border-[#1A2520]">

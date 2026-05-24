@@ -15,6 +15,19 @@ export default async function AlertsPage() {
     .order('created_at', { ascending: false })
     .limit(100)
 
+  // Hydrate les noms d'entreprise : la table alerts ne stocke que le ticker,
+  // on lookup company_name dans ticker_scores pour pouvoir l'afficher en titre.
+  const tickerSet = Array.from(new Set((alerts ?? []).map(a => a.ticker as string)))
+  const nameMap: Record<string, string | null> = {}
+  if (tickerSet.length > 0) {
+    const { data: scoreRows } = await supabase
+      .from('ticker_scores')
+      .select('ticker, company_name')
+      .in('ticker', tickerSet)
+    for (const r of scoreRows ?? []) nameMap[r.ticker as string] = r.company_name as string | null
+  }
+  const enriched = (alerts ?? []).map(a => ({ ...a, company_name: nameMap[a.ticker] ?? null }))
+
   return (
     <div className="min-h-screen bg-[#0A0F0C] text-[#F0EBDB]">
       <AppNav activePath="/alerts" />
@@ -32,7 +45,7 @@ export default async function AlertsPage() {
             {(alerts?.length ?? 0) > 0 && <AlertsClient.MarkReadButton />}
           </div>
         </div>
-        <AlertsClient initialAlerts={alerts ?? []} />
+        <AlertsClient initialAlerts={enriched} />
       </main>
     </div>
   )
