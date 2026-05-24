@@ -144,18 +144,21 @@ export function EditorialCTA() {
                 style={{ marginTop: 24, paddingTop: 16, borderTop: `1px solid ${C.rule}`, gap: 16 }}
               >
                 {[
-                  { sym: "NVDA", score: 84, delta: "+2", kind: "HIGHLIGHT",  color: C.phosphor,     line: "Marges record. Momentum intact. Zone d'achat confirmée." },
-                  { sym: "ASML", score: 71, delta: "+3", kind: "ROTATION",   color: C.phosphorSoft, line: "Commandes mémoire repartent. Technique vire haussier." },
-                  { sym: "LVMH", score: 58, delta: "-6", kind: "DOWNGRADE",  color: C.ember,        line: "Ralentissement Chine. Momentum s'essouffle." },
+                  { sym: "NVDA", name: "NVIDIA",                 score: 84, delta: "+2", kind: "HIGHLIGHT",  color: C.phosphor,     line: "Marges record. Momentum intact. Zone d'achat confirmée." },
+                  { sym: "ASML", name: "ASML Holding",           score: 71, delta: "+3", kind: "ROTATION",   color: C.phosphorSoft, line: "Commandes mémoire repartent. Technique vire haussier." },
+                  { sym: "LVMH", name: "LVMH Moët Hennessy",     score: 58, delta: "-6", kind: "DOWNGRADE",  color: C.ember,        line: "Ralentissement Chine. Momentum s'essouffle." },
                 ].map((it) => (
                   <div key={it.sym} className="grid items-center" style={{ gridTemplateColumns: "44px 1fr auto", gap: 14 }}>
                     <Gauge value={it.score} size={44} stroke={5} showNumeral={false} />
-                    <div>
+                    <div style={{ minWidth: 0 }}>
                       <div className="flex items-baseline gap-2">
-                        <span style={{ fontFamily: serif, fontSize: 18, fontWeight: 600, color: C.ink, letterSpacing: "-0.02em" }}>{it.sym}</span>
+                        <span style={{ fontFamily: serif, fontSize: 17, fontWeight: 600, color: C.ink, letterSpacing: "-0.02em" }}>{it.name}</span>
                         <span style={{ fontFamily: mono, fontSize: 9, color: it.color, letterSpacing: "0.16em" }}>· {it.kind}</span>
                       </div>
-                      <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: 13, color: C.inkDim, lineHeight: 1.4, marginTop: 2 }}>
+                      <div style={{ fontFamily: mono, fontSize: 9, color: C.muted, letterSpacing: "0.14em", marginTop: 2 }}>
+                        {it.sym}
+                      </div>
+                      <div style={{ fontFamily: serif, fontStyle: "italic", fontSize: 13, color: C.inkDim, lineHeight: 1.4, marginTop: 3 }}>
                         {it.line}
                       </div>
                     </div>

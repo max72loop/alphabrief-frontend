@@ -12,13 +12,13 @@ const BANDS = [
 ];
 
 const EXAMPLES = [
-  { sym: "NVDA", score: 84 },
-  { sym: "MSFT", score: 78 },
-  { sym: "AAPL", score: 62 },
-  { sym: "LVMH", score: 58 },
-  { sym: "PLTR", score: 48 },
-  { sym: "TSLA", score: 41 },
-  { sym: "BB",   score: 22 },
+  { name: "Nvidia",     sym: "NVDA", score: 84 },
+  { name: "Microsoft",  sym: "MSFT", score: 78 },
+  { name: "Apple",      sym: "AAPL", score: 62 },
+  { name: "LVMH",       sym: "LVMH", score: 58 },
+  { name: "Palantir",   sym: "PLTR", score: 48 },
+  { name: "Tesla",      sym: "TSLA", score: 41 },
+  { name: "BlackBerry", sym: "BB",   score: 22 },
 ];
 
 export function ScoreReader() {
@@ -88,7 +88,8 @@ export function ScoreReader() {
               <button
                 key={e.sym}
                 onClick={() => setV(e.score)}
-                className="inline-flex items-center gap-2 cursor-pointer"
+                title={e.sym}
+                className="inline-flex items-baseline gap-2 cursor-pointer"
                 style={{
                   padding: "6px 12px",
                   border: `1px solid ${C.rule}`,
@@ -96,14 +97,13 @@ export function ScoreReader() {
                     : e.score >= SCORE_THRESHOLDS.neutral ? `${C.ember}08`
                     : `${C.sanguine}10`,
                   color: scoreColor(e.score),
-                  fontFamily: mono,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 600,
                   borderRadius: 4,
                 }}
               >
-                <span style={{ color: C.ink }}>{e.sym}</span>
-                <span>{e.score}</span>
+                <span style={{ color: C.ink }}>{e.name}</span>
+                <span style={{ fontFamily: mono, fontSize: 11 }}>{e.score}</span>
               </button>
             ))}
           </div>

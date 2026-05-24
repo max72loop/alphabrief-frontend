@@ -237,18 +237,18 @@ export default function DashboardWatchlist({ rows }: { rows: WatchRow[] }) {
               >
                 <Gauge value={r.score} size={52} stroke={5} showNumeral={false} />
 
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
                     <span
                       style={{
                         fontFamily: serif,
-                        fontSize: 22,
+                        fontSize: 20,
                         fontWeight: 600,
                         color: C.ink,
                         letterSpacing: "-0.02em",
                       }}
                     >
-                      {r.ticker}
+                      {r.name ?? r.ticker}
                     </span>
                     {r.alert && (
                       <span
@@ -266,14 +266,9 @@ export default function DashboardWatchlist({ rows }: { rows: WatchRow[] }) {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontFamily: sans, fontSize: 13, color: C.inkDim, marginTop: 2 }}>
-                    {r.name ?? r.ticker}
+                  <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.14em", marginTop: 4 }}>
+                    {r.ticker}{r.sector ? ` · ${r.sector.toUpperCase()}` : ""}
                   </div>
-                  {r.sector && (
-                    <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.08em", marginTop: 3 }}>
-                      {r.sector.toUpperCase()}
-                    </div>
-                  )}
                 </div>
 
                 <div style={{ textAlign: "right" }}>

@@ -119,11 +119,11 @@ export function EditorialTable({
                 <Gauge value={r.score} size={44} stroke={4.5} showNumeral={false} />
               </Link>
 
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <Link href={`/ticker/${r.ticker}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-                    <span style={{ fontFamily: serif, fontSize: 22, fontWeight: 600, color: C.ink, letterSpacing: "-0.02em" }}>
-                      {r.ticker}
+                    <span style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, letterSpacing: "-0.02em" }}>
+                      {r.name || r.ticker}
                     </span>
                     {r.alert && (
                       <span style={{
@@ -137,10 +137,12 @@ export function EditorialTable({
                       {band(r.score)}
                     </span>
                   </div>
-                  <div style={{ fontFamily: sans, fontSize: 13, color: C.inkDim, marginTop: 2 }}>{r.name}</div>
-                  {density === "cozy" && (
-                    <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.08em", marginTop: 3 }}>
-                      {r.sector ? `${r.sector.toUpperCase()} · ` : ""}{r.price ? `${r.price} · ` : ""}{r.added ? `SUIVI DEPUIS ${r.added.toUpperCase()}` : ""}
+                  <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.14em", marginTop: 4 }}>
+                    {r.ticker}{r.sector ? ` · ${r.sector.toUpperCase()}` : ""}
+                  </div>
+                  {density === "cozy" && (r.price || r.added) && (
+                    <div style={{ fontFamily: sans, fontSize: 11, color: C.muted, marginTop: 3 }}>
+                      {r.price ? `${r.price}` : ""}{r.price && r.added ? " · " : ""}{r.added ? `suivi depuis ${r.added}` : ""}
                     </div>
                   )}
                 </Link>
@@ -235,11 +237,16 @@ export function EditorialTable({
                   display: "flex", gap: 12, alignItems: "baseline",
                   fontFamily: serif, fontStyle: "italic", fontSize: 14, lineHeight: 1.5, color: C.inkDim,
                 }}>
-                  <span style={{
-                    fontStyle: "normal", fontFamily: mono, fontSize: 11, color: t,
-                    fontWeight: 600, letterSpacing: "0.02em", width: 70, flexShrink: 0,
-                  }}>
-                    {r.ticker} · {r.score}
+                  <span
+                    style={{
+                      fontStyle: "normal", fontFamily: sans, fontSize: 13, color: C.ink,
+                      fontWeight: 600, width: 140, flexShrink: 0,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}
+                    title={r.ticker}
+                  >
+                    {r.name || r.ticker}
+                    <span style={{ color: t, fontFamily: mono, fontWeight: 600, marginLeft: 6 }}>· {r.score}</span>
                   </span>
                   <span><span style={{ color: t, fontStyle: "normal", marginRight: 4 }}>›</span>{r.note}</span>
                 </div>

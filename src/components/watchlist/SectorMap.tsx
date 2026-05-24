@@ -103,13 +103,25 @@ export function SectorMap({ items }: { items: WatchlistItem[] }) {
                   const tc = tone(tit.score)
                   const d = tit.score - tit.prev
                   return (
-                    <span key={tit.ticker} style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      padding: "5px 9px", borderRadius: 6,
-                      background: `${tc}10`, border: `1px solid ${tc}40`,
-                      fontFamily: mono, fontSize: 11, color: C.ink,
-                    }}>
-                      <span style={{ fontFamily: serif, fontWeight: 600, fontSize: 13 }}>{tit.ticker}</span>
+                    <span
+                      key={tit.ticker}
+                      title={tit.ticker}
+                      style={{
+                        display: "inline-flex", alignItems: "baseline", gap: 6,
+                        padding: "5px 9px", borderRadius: 6,
+                        background: `${tc}10`, border: `1px solid ${tc}40`,
+                        fontFamily: mono, fontSize: 11, color: C.ink,
+                        maxWidth: 220,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: "var(--font-fraunces, serif)", fontWeight: 600, fontSize: 13,
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}
+                      >
+                        {tit.name || tit.ticker}
+                      </span>
                       <span style={{ color: tc, fontWeight: 600 }}>{tit.score}</span>
                       <span style={{ color: d >= 0 ? C.phosphor : C.sanguine, fontSize: 9, letterSpacing: "0.04em" }}>
                         {d > 0 ? "+" : ""}{d}

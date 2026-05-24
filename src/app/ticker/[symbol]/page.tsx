@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -10,6 +11,25 @@ import { FREE_DAILY_QUOTA } from '@/lib/quota'
 import DetailsTabs from './_components/DetailsTabs'
 import ShareButton, { AlertButton } from './_components/DetailsActions'
 import ScoreHistoryChart from './_components/ScoreHistoryChart'
+
+// Onglet du navigateur : nom d'entreprise en titre, ticker secondaire.
+export async function generateMetadata(
+  { params }: { params: Promise<{ symbol: string }> }
+): Promise<Metadata> {
+  const { symbol } = await params
+  const ticker = symbol.toUpperCase()
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('ticker_scores')
+    .select('company_name, score_total')
+    .eq('ticker', ticker)
+    .maybeSingle()
+  const name = (data?.company_name as string | null) || ticker
+  const score = data?.score_total != null ? ` · ${Math.round(data.score_total)}/100` : ''
+  return {
+    title: `${name} (${ticker})${score} — AlphaBrief`,
+  }
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

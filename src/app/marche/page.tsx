@@ -179,7 +179,8 @@ export default async function MarchePage() {
   const { data: wl } = await supabase
     .from('watchlists').select('id').eq('user_id', user.id).maybeSingle()
 
-  const watchlistByClass: Record<string, string[]> = {}
+  type WatchTag = { ticker: string; name: string | null }
+  const watchlistByClass: Record<string, WatchTag[]> = {}
   if (wl) {
     const { data: items } = await supabase
       .from('watchlist_tickers').select('ticker').eq('watchlist_id', wl.id)
@@ -187,12 +188,15 @@ export default async function MarchePage() {
 
     if (tickers.length > 0) {
       const { data: scores } = await supabase
-        .from('ticker_scores').select('ticker,sector').in('ticker', tickers)
+        .from('ticker_scores').select('ticker,sector,company_name').in('ticker', tickers)
       for (const s of scores ?? []) {
         const t = s.ticker as string
         const assetId = CRYPTO_TICKERS.has(t) ? 'bitcoin' : SECTOR_TO_ASSET[s.sector ?? ''] ?? ''
         if (assetId) {
-          watchlistByClass[assetId] = [...(watchlistByClass[assetId] ?? []), t]
+          watchlistByClass[assetId] = [...(watchlistByClass[assetId] ?? []), {
+            ticker: t,
+            name: (s.company_name as string | null) ?? null,
+          }]
         }
       }
     }
@@ -277,9 +281,13 @@ export default async function MarchePage() {
                   Dans votre suivi :
                 </span>
                 {top.watchlistTickers.map(t => (
-                  <Link key={t} href={`/ticker/${t}`} className={`text-[10px] font-bold px-2 py-0.5 rounded ${tagCls(top.score)}`}
-                    style={{ fontFamily: mono }}>
-                    {t}
+                  <Link
+                    key={t.ticker}
+                    href={`/ticker/${t.ticker}`}
+                    title={t.ticker}
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded ${tagCls(top.score)}`}
+                  >
+                    {t.name ?? t.ticker}
                   </Link>
                 ))}
               </div>
@@ -322,9 +330,13 @@ export default async function MarchePage() {
               {asset.watchlistTickers.length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-1">
                   {asset.watchlistTickers.map(t => (
-                    <Link key={t} href={`/ticker/${t}`} className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${tagCls(asset.score)}`}
-                      style={{ fontFamily: mono }}>
-                      {t}
+                    <Link
+                      key={t.ticker}
+                      href={`/ticker/${t.ticker}`}
+                      title={t.ticker}
+                      className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${tagCls(asset.score)}`}
+                    >
+                      {t.name ?? t.ticker}
                     </Link>
                   ))}
                 </div>

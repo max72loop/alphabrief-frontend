@@ -114,8 +114,8 @@ export default function PortfolioClient({
       {/* Add form */}
       <form onSubmit={add} className="rounded-xl border border-[#1A2520] bg-[#0E1511] p-4 mb-6">
         <div className="flex flex-wrap gap-2">
-          <input value={ticker} onChange={e => setTicker(e.target.value.toUpperCase())} placeholder="Ticker" required
-            className={inputCls} />
+          <input value={ticker} onChange={e => setTicker(e.target.value.toUpperCase())} placeholder="Ticker (ex. AAPL)" required
+            className={inputCls} title="Ticker boursier — l'ajout par nom n'est pas encore supporté" />
           <input value={qty} onChange={e => setQty(e.target.value)} type="number" step="any" min="0" placeholder="Quantité"
             className={inputCls} />
           <input value={pru} onChange={e => setPru(e.target.value)} type="number" step="any" min="0" placeholder="PRU (€)"
@@ -140,8 +140,8 @@ export default function PortfolioClient({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#1A2520]">
-                {['Ticker','Score','Qté','PRU (€)','Cours (€)','Var. jour','Valeur (€)','P&L','Actions'].map(h => (
-                  <th key={h} className={`px-4 py-3 text-[10px] uppercase tracking-[0.16em] text-[#6D7A72] ${h === 'Ticker' ? 'text-left' : 'text-right'} ${['Score','Actions'].includes(h) ? 'text-center' : ''}`}
+                {['Titre','Score','Qté','PRU (€)','Cours (€)','Var. jour','Valeur (€)','P&L','Actions'].map(h => (
+                  <th key={h} className={`px-4 py-3 text-[10px] uppercase tracking-[0.16em] text-[#6D7A72] ${h === 'Titre' ? 'text-left' : 'text-right'} ${['Score','Actions'].includes(h) ? 'text-center' : ''}`}
                     style={{ fontFamily: mono }}>{h}</th>
                 ))}
               </tr>
@@ -159,7 +159,14 @@ export default function PortfolioClient({
 
                 if (editId === h.id) return (
                   <tr key={h.id} className="bg-[#7EE5A3]/[0.04]">
-                    <td className="px-4 py-3 font-bold text-[#F0EBDB]">{h.ticker}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-[#F0EBDB]" style={{ fontFamily: 'var(--font-fraunces, serif)' }}>
+                        {info?.company_name || h.ticker}
+                      </div>
+                      {info?.company_name && (
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-[#4A6355] mt-0.5" style={{ fontFamily: mono }}>{h.ticker}</div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-center text-[#6D7A72]">—</td>
                     <td className="px-4 py-3 text-right">
                       <input type="number" value={editQty} onChange={e => setEditQty(e.target.value)} step="any"

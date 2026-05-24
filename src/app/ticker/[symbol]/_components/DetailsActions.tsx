@@ -31,7 +31,7 @@ export default function ShareButton({ ticker, companyName, shareUrl }: Props) {
 
   const onShare = async () => {
     const url = shareUrl ?? (typeof window !== 'undefined' ? window.location.href : '')
-    const title = companyName ? `${ticker} · ${companyName} — AlphaBrief` : `${ticker} — AlphaBrief`
+    const title = companyName ? `${companyName} (${ticker}) — AlphaBrief` : `${ticker} — AlphaBrief`
     try {
       if (typeof navigator !== 'undefined' && 'share' in navigator) {
         await (navigator as Navigator & { share: (data: { title: string; url: string }) => Promise<void> }).share({ title, url })

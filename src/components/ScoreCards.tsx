@@ -62,12 +62,21 @@ function ScoreCard({ s, trigger }: { s: (typeof SCORES)[0]; trigger: boolean }) 
 
   return (
     <div className="bg-[#0F1A13] border border-[#1A2520] rounded-2xl p-5 flex flex-col gap-3 hover:border-[#7EE5A3]/30 transition-colors">
-      <div className="flex items-start justify-between">
-        <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-[#F0EBDB]">
-            {s.ticker}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <span
+            className="block text-sm font-medium text-[#F0EBDB] truncate"
+            style={{ fontFamily: "var(--font-fraunces, serif)" }}
+            title={s.ticker}
+          >
+            {s.name}
           </span>
-          <p className="text-[0.7rem] text-[#4A6355] mt-0.5">{s.name}</p>
+          <p
+            className="text-[0.65rem] text-[#4A6355] mt-0.5 uppercase tracking-[0.14em]"
+            style={{ fontFamily: "var(--font-jetbrains-mono, monospace)" }}
+          >
+            {s.ticker}
+          </p>
         </div>
         <span className={`text-[0.7rem] font-semibold ${s.changePos ? "text-[#7EE5A3]" : "text-red-400"}`}>
           {s.change}

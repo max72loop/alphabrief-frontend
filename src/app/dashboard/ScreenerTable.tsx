@@ -296,7 +296,7 @@ export default function ScreenerTable({
             <label className="text-[0.65rem] text-[#4A6355] uppercase tracking-wider">Recherche</label>
             <input
               type="text"
-              placeholder="Ticker ou nom…"
+              placeholder="Entreprise ou ticker…"
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="px-2.5 py-1.5 rounded-lg bg-[#13201A] border border-[#1A2520] text-sm text-[#F0EBDB] placeholder-[#4A6355] focus:border-[#7EE5A3]/50 outline-none w-40"

@@ -100,8 +100,8 @@ export function Hero() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="ex. NVDA, AAPL, MSFT…"
-              aria-label="Ticker à scorer"
+              placeholder="ex. Apple, Nvidia, Microsoft…"
+              aria-label="Entreprise ou ticker à scorer"
               autoComplete="off"
               spellCheck={false}
               style={{
@@ -110,10 +110,9 @@ export function Hero() {
                 border: "none",
                 outline: "none",
                 color: C.ink,
-                fontFamily: mono,
+                fontFamily: sans,
                 fontSize: 15,
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
+                letterSpacing: "0",
               }}
             />
           </div>
@@ -134,25 +133,30 @@ export function Hero() {
           <span style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.16em", marginRight: 4 }}>
             ESSAYEZ ·
           </span>
-          {["NVDA", "AAPL", "MSFT", "TSLA"].map((sym) => (
+          {[
+            { name: "Nvidia",     sym: "NVDA" },
+            { name: "Apple",      sym: "AAPL" },
+            { name: "Microsoft",  sym: "MSFT" },
+            { name: "Tesla",      sym: "TSLA" },
+          ].map((it) => (
             <button
-              key={sym}
+              key={it.sym}
               type="button"
-              onClick={() => setQuery(sym)}
+              onClick={() => setQuery(it.name)}
+              title={it.sym}
               style={{
                 padding: "5px 10px",
                 background: "transparent",
                 border: `1px solid ${C.rule}`,
                 borderRadius: 4,
                 color: C.inkDim,
-                fontFamily: mono,
-                fontSize: 11,
-                fontWeight: 600,
+                fontFamily: sans,
+                fontSize: 12,
+                fontWeight: 500,
                 cursor: "pointer",
-                letterSpacing: "0.04em",
               }}
             >
-              {sym}
+              {it.name}
             </button>
           ))}
           <Link

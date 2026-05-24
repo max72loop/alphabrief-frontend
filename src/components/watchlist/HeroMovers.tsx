@@ -28,9 +28,16 @@ function HeroCard({ it, kind }: { it: WatchlistItem; kind: string }) {
           <div style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.22em", fontWeight: 600, color: accent, marginBottom: 8 }}>
             {kind}
           </div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-            <span style={{ fontFamily: serif, fontSize: 44, fontWeight: 600, color: C.ink, letterSpacing: "-0.03em", lineHeight: 1 }}>
-              {it.ticker}
+          <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+            <span
+              style={{
+                fontFamily: serif, fontSize: 38, fontWeight: 600, color: C.ink,
+                letterSpacing: "-0.03em", lineHeight: 1.05,
+                maxWidth: 360, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}
+              title={it.ticker}
+            >
+              {it.name || it.ticker}
             </span>
             {it.alert && (
               <span style={{
@@ -41,11 +48,9 @@ function HeroCard({ it, kind }: { it: WatchlistItem; kind: string }) {
               </span>
             )}
           </div>
-          <div style={{ fontFamily: sans, fontSize: 13, color: C.inkDim, marginTop: 4 }}>
-            {it.name}
-            {it.sector && (
-              <> · <span style={{ color: C.muted, fontFamily: mono, fontSize: 11, letterSpacing: "0.06em" }}>{it.sector.toUpperCase()}</span></>
-            )}
+          <div style={{ fontFamily: mono, fontSize: 11, color: C.muted, letterSpacing: "0.14em", marginTop: 6 }}>
+            {it.ticker}
+            {it.sector && <> · {it.sector.toUpperCase()}</>}
           </div>
         </div>
         <Gauge value={it.score} size={88} stroke={7} showNumeral={false} />

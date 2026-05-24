@@ -72,11 +72,11 @@ export function DailyEdition() {
               </div>
 
               <div>
-                <div style={{ fontFamily: serif, fontSize: 28, fontWeight: 600, color: C.ink, letterSpacing: "-0.02em" }}>
-                  {it.sym}
+                <div style={{ fontFamily: serif, fontSize: 22, fontWeight: 600, color: C.ink, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+                  {it.name}
                 </div>
-                <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.08em" }}>
-                  {it.name.toUpperCase()}
+                <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.14em", marginTop: 4 }}>
+                  {it.sym}
                 </div>
               </div>
 

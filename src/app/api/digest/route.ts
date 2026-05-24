@@ -91,8 +91,8 @@ function scoreColor(s: number) {
 function tickerRows(rows: { ticker: string; company_name: string | null; score_total: number }[]) {
   return rows.map(r => `
     <tr>
-      <td style="padding:10px 18px;font-weight:700;color:#F0EBDB;font-size:13px;font-family:monospace,Menlo,Courier">${r.ticker}</td>
-      <td style="padding:10px 18px;color:#C6C0A9;font-size:13px">${r.company_name ?? ''}</td>
+      <td style="padding:10px 18px;font-weight:500;color:#F0EBDB;font-size:14px;font-family:Georgia,'Times New Roman',serif">${r.company_name ?? r.ticker}</td>
+      <td style="padding:10px 18px;color:#6D7A72;font-size:11px;font-family:monospace,Menlo,Courier;letter-spacing:0.12em">${r.ticker}</td>
       <td style="padding:10px 18px;font-weight:700;font-size:14px;color:${scoreColor(r.score_total)};font-family:monospace,Menlo,Courier">${r.score_total}</td>
     </tr>
   `).join('')
@@ -134,8 +134,8 @@ function buildDigestHtml(
   <table style="width:100%;border-collapse:collapse;background:#0E1511;border:1px solid #1A2520;border-radius:8px;overflow:hidden">
     <thead>
       <tr style="border-bottom:1px solid #1A2520">
+        <th style="text-align:left;padding:10px 18px;font-size:10px;color:#6D7A72;text-transform:uppercase;letter-spacing:0.16em;font-family:monospace,Menlo,Courier;font-weight:600">Entreprise</th>
         <th style="text-align:left;padding:10px 18px;font-size:10px;color:#6D7A72;text-transform:uppercase;letter-spacing:0.16em;font-family:monospace,Menlo,Courier;font-weight:600">Ticker</th>
-        <th style="text-align:left;padding:10px 18px;font-size:10px;color:#6D7A72;text-transform:uppercase;letter-spacing:0.16em;font-family:monospace,Menlo,Courier;font-weight:600">Société</th>
         <th style="text-align:left;padding:10px 18px;font-size:10px;color:#6D7A72;text-transform:uppercase;letter-spacing:0.16em;font-family:monospace,Menlo,Courier;font-weight:600">Score</th>
       </tr>
     </thead>

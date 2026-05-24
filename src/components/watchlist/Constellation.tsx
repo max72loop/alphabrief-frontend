@@ -107,6 +107,7 @@ export function Constellation({ items }: { items: WatchlistItem[] }) {
             const anchor = labelOnLeft ? "end" : "start"
             return (
               <g key={t.ticker} onMouseEnter={() => setHover(t.ticker)} onMouseLeave={() => setHover(null)} style={{ cursor: "pointer" }}>
+                <title>{t.name ? `${t.name} (${t.ticker})` : t.ticker}</title>
                 <circle cx={cx} cy={cy} r={r + 8} fill={col} opacity={isHover ? 0.25 : 0.12} />
                 <circle cx={cx} cy={cy} r={r} fill={col} stroke={C.bgCard} strokeWidth="1.5" />
                 {t.alert && (
@@ -119,7 +120,7 @@ export function Constellation({ items }: { items: WatchlistItem[] }) {
                   textAnchor={anchor}
                   letterSpacing="-0.01em"
                 >
-                  {t.ticker}
+                  {isHover && t.name ? (t.name.length > 18 ? t.name.slice(0, 18) + "…" : t.name) : t.ticker}
                 </text>
                 <text
                   x={cx + ox} y={cy + 17}
