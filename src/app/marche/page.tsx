@@ -287,7 +287,7 @@ export default async function MarchePage() {
                     title={t.ticker}
                     className={`text-[10px] font-bold px-2 py-0.5 rounded ${tagCls(top.score)}`}
                   >
-                    {t.name ?? t.ticker}
+                    {t.name || t.ticker}
                   </Link>
                 ))}
               </div>
@@ -336,7 +336,7 @@ export default async function MarchePage() {
                       title={t.ticker}
                       className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${tagCls(asset.score)}`}
                     >
-                      {t.name ?? t.ticker}
+                      {t.name || t.ticker}
                     </Link>
                   ))}
                 </div>

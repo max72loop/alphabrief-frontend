@@ -163,7 +163,7 @@ export default function PersonalEdition({
                     lineHeight: 1.1,
                   }}
                 >
-                  {it.name ?? it.ticker}
+                  {it.name || it.ticker}
                 </div>
                 <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.14em", marginTop: 4 }}>
                   {it.ticker}

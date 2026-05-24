@@ -91,7 +91,7 @@ function scoreColor(s: number) {
 function tickerRows(rows: { ticker: string; company_name: string | null; score_total: number }[]) {
   return rows.map(r => `
     <tr>
-      <td style="padding:10px 18px;font-weight:500;color:#F0EBDB;font-size:14px;font-family:Georgia,'Times New Roman',serif">${r.company_name ?? r.ticker}</td>
+      <td style="padding:10px 18px;font-weight:500;color:#F0EBDB;font-size:14px;font-family:Georgia,'Times New Roman',serif">${r.company_name || r.ticker}</td>
       <td style="padding:10px 18px;color:#6D7A72;font-size:11px;font-family:monospace,Menlo,Courier;letter-spacing:0.12em">${r.ticker}</td>
       <td style="padding:10px 18px;font-weight:700;font-size:14px;color:${scoreColor(r.score_total)};font-family:monospace,Menlo,Courier">${r.score_total}</td>
     </tr>

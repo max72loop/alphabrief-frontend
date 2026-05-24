@@ -86,7 +86,7 @@ export default async function HistoriquePage() {
                           className="hover:text-[#7EE5A3] transition-colors"
                           title={t.ticker}
                         >
-                          {t.company_name ?? t.ticker} · {Math.round(t.score_total)}
+                          {t.company_name || t.ticker} · {Math.round(t.score_total)}
                         </Link>
                       ))}
                     </div>

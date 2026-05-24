@@ -77,7 +77,7 @@ function AlertsClient({ initialAlerts }: { initialAlerts: Alert[] }) {
               style={{ fontFamily: 'var(--font-fraunces, serif)', fontSize: 16, letterSpacing: '-0.01em' }}
               title={alert.ticker}
             >
-              {alert.company_name ?? alert.ticker}
+              {alert.company_name || alert.ticker}
             </Link>
             {alert.company_name && (
               <div

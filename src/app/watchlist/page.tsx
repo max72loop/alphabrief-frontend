@@ -162,7 +162,7 @@ export default async function WatchlistPage() {
     const mkt = s.market_data
     return {
       ticker,
-      name: s.company_name ?? ticker,
+      name: s.company_name || ticker,
       score,
       prev,
       hist,

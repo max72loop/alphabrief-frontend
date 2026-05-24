@@ -248,7 +248,7 @@ export default function DashboardWatchlist({ rows }: { rows: WatchRow[] }) {
                         letterSpacing: "-0.02em",
                       }}
                     >
-                      {r.name ?? r.ticker}
+                      {r.name || r.ticker}
                     </span>
                     {r.alert && (
                       <span

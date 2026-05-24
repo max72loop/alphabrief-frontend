@@ -70,7 +70,7 @@ export default async function SearchPage({
                       className="text-lg font-medium text-[#F0EBDB] truncate"
                       style={{ fontFamily: 'var(--font-fraunces, serif)', letterSpacing: '-0.01em' }}
                     >
-                      {r.company_name ?? r.ticker}
+                      {r.company_name || r.ticker}
                     </div>
                     <div
                       className="text-[11px] text-[#6D7A72] mt-0.5 uppercase tracking-[0.14em]"

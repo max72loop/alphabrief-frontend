@@ -213,7 +213,7 @@ export default async function ComparePage({
                       style={{ fontFamily: 'var(--font-fraunces, serif)', letterSpacing: '-0.01em' }}
                       title={tickerA}
                     >
-                      {rowA.company_name ?? tickerA}
+                      {rowA.company_name || tickerA}
                     </Link>
                     <p className="text-[10px] text-[#6D7A72] font-normal mt-1 uppercase tracking-[0.14em]" style={{ fontFamily: mono }}>
                       {tickerA}{rowA.sector ? ` · ${rowA.sector}` : ''}
@@ -226,7 +226,7 @@ export default async function ComparePage({
                       style={{ fontFamily: 'var(--font-fraunces, serif)', letterSpacing: '-0.01em' }}
                       title={tickerB}
                     >
-                      {rowB.company_name ?? tickerB}
+                      {rowB.company_name || tickerB}
                     </Link>
                     <p className="text-[10px] text-[#6D7A72] font-normal mt-1 uppercase tracking-[0.14em]" style={{ fontFamily: mono }}>
                       {tickerB}{rowB.sector ? ` · ${rowB.sector}` : ''}

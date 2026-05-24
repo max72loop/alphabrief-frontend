@@ -175,7 +175,7 @@ function TeaserBlock({ ticker, row }: { ticker: string; row: TickerScore }) {
               § APERÇU · {(row.sector ?? '').toUpperCase()}
             </div>
             <h1 style={{ fontFamily: serif, fontSize: 64, fontWeight: 500, lineHeight: 1, letterSpacing: '-0.03em', margin: 0 }}>
-              {row.company_name ?? ticker}
+              {row.company_name || ticker}
             </h1>
             <div style={{ marginTop: 18, fontFamily: mono, fontSize: 13, color: C.muted, letterSpacing: '0.12em' }}>
               {ticker} · {row.exchange ?? '—'}
@@ -286,9 +286,9 @@ function DetailsSubnav({ row, ticker, inWatchlist }: {
               letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               maxWidth: 280,
             }}
-            title={row.company_name ?? ticker}
+            title={row.company_name || ticker}
           >
-            {row.company_name ?? ticker}
+            {row.company_name || ticker}
           </span>
           <span style={{ fontFamily: mono, fontSize: 11, color: C.muted, letterSpacing: '0.1em' }}>
             {ticker}
@@ -443,7 +443,7 @@ function DetailsMasthead({ row, ticker, history }: {
             § DOSSIER · {(row.sector ?? '').toUpperCase()}
           </div>
           {(() => {
-            const fullName = row.company_name ?? ticker
+            const fullName = row.company_name || ticker
             const words = fullName.split(/\s+/)
             // Choose font size based on total length (keep title 1-2 lines on most cases)
             const fs = fullName.length > 30 ? 56 : fullName.length > 20 ? 72 : 88
@@ -967,11 +967,11 @@ function PeersComparison({ row, peers }: { row: TickerScore; peers: PeerRow[] })
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                 {p.isYou ? (
                   <span style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, letterSpacing: '-0.02em' }}>
-                    {p.company_name ?? p.ticker}
+                    {p.company_name || p.ticker}
                   </span>
                 ) : (
                   <Link href={`/ticker/${p.ticker}`} style={{ fontFamily: serif, fontSize: 20, fontWeight: 600, color: C.ink, letterSpacing: '-0.02em', textDecoration: 'none' }}>
-                    {p.company_name ?? p.ticker}
+                    {p.company_name || p.ticker}
                   </Link>
                 )}
                 {p.isYou && (
@@ -1215,7 +1215,7 @@ function NextRead({ peers }: { peers: PeerRow[] }) {
                   }}>{Math.round(n2.score_total)}</span>
                 </div>
                 <div style={{ fontFamily: serif, fontStyle: 'italic', fontSize: 14, color: C.inkDim, marginTop: 4 }}>
-                  Même secteur — {n2.company_name ?? n2.ticker}.
+                  Même secteur — {n2.company_name || n2.ticker}.
                 </div>
               </div>
               <span style={{ fontFamily: mono, fontSize: 14, color: C.phosphor }}>→</span>

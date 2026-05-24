@@ -163,7 +163,7 @@ export default function QuickScorer({
                   <button
                     type="button"
                     key={s.ticker}
-                    onClick={() => setQuery(s.name ?? s.ticker)}
+                    onClick={() => setQuery(s.name || s.ticker)}
                     style={{
                       padding: "7px 12px",
                       background: "transparent",
@@ -178,7 +178,7 @@ export default function QuickScorer({
                       alignItems: "baseline",
                     }}
                   >
-                    <span style={{ color: C.ink, fontWeight: 600 }}>{s.name ?? s.ticker}</span>
+                    <span style={{ color: C.ink, fontWeight: 600 }}>{s.name || s.ticker}</span>
                     <span style={{ color: C.muted, fontFamily: mono, fontSize: 10, letterSpacing: "0.1em" }}>
                       {s.ticker} · {s.score}
                     </span>
@@ -259,7 +259,7 @@ export default function QuickScorer({
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {r.name ?? r.ticker}
+                    {r.name || r.ticker}
                   </div>
                   <div style={{ fontFamily: mono, fontSize: 10, color: C.muted, letterSpacing: "0.12em", marginTop: 2 }}>
                     {r.ticker} · {r.when.toUpperCase()}
