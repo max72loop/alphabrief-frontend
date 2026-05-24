@@ -13,6 +13,10 @@ import { FREE_DAILY_QUOTA } from '@/lib/quota'
 
 const GUEST_LIMIT = 20
 
+function sparklineCutoffIso(): string {
+  return new Date(Date.now() - 30 * 86_400_000).toISOString()
+}
+
 function firstNameFrom(user: { user_metadata?: { full_name?: string; first_name?: string; name?: string }; email?: string }): string {
   const meta = user.user_metadata ?? {}
   const fromMeta = meta.first_name ?? (meta.full_name ?? meta.name ?? '').split(' ')[0]
@@ -48,7 +52,7 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ data: rows, error }, watchlistTickers] = await Promise.all([
+  const [{ data: rows, error }, watchlistTickers, historyResult] = await Promise.all([
     supabase
       .from('ticker_scores')
       .select('*')
@@ -66,7 +70,21 @@ export default async function DashboardPage() {
           } catch { return [] }
         })()
       : Promise.resolve([]),
+    // 30-day sparkline data — ordered oldest → newest so the line draws left to right.
+    supabase
+      .from('score_history')
+      .select('ticker, score, scored_at')
+      .gte('scored_at', sparklineCutoffIso())
+      .order('scored_at', { ascending: true })
+      .limit(10000),
   ])
+
+  const histByTicker: Record<string, number[]> = {}
+  for (const h of historyResult?.data ?? []) {
+    const t = h.ticker as string
+    if (!histByTicker[t]) histByTicker[t] = []
+    histByTicker[t].push(Math.round(h.score as number))
+  }
 
   const isAuthenticated = !!user
 
@@ -115,7 +133,7 @@ export default async function DashboardPage() {
               <p className="text-lg font-medium mb-2">Aucun score disponible</p>
             </div>
           ) : (
-            <ScreenerTable rows={rows as TickerScore[]} watchlistTickers={[]} isAuthenticated={false} />
+            <ScreenerTable rows={rows as TickerScore[]} watchlistTickers={[]} isAuthenticated={false} histByTicker={histByTicker} />
           )}
         </main>
       </div>

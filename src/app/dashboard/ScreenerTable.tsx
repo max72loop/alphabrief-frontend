@@ -3,6 +3,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import WatchlistButton from './WatchlistButton'
 import { SCORE_THRESHOLDS, scoreLabel } from '@/components/landing/Gauge'
+import { Sparkline } from '@/components/watchlist/Sparkline'
 
 type MarketData = {
   rsi_14?: number | null
@@ -188,10 +189,12 @@ export default function ScreenerTable({
   rows,
   watchlistTickers,
   isAuthenticated = true,
+  histByTicker,
 }: {
   rows: TickerScore[]
   watchlistTickers: string[]
   isAuthenticated?: boolean
+  histByTicker?: Record<string, number[]>
 }) {
   const router = useRouter()
 
@@ -437,6 +440,7 @@ export default function ScreenerTable({
               <tr className="border-b border-[#1A2520] bg-[#0E1511]">
                 <SortTh colKey="ticker" label="Titre" className="text-left pl-5" />
                 <SortTh colKey="score_total" label="Score" className="text-center" />
+                <th className="px-4 py-3 text-xs font-medium text-[#6D7A72] uppercase tracking-wider text-center">30j</th>
                 {col('sector')       && <SortTh colKey="sector"       label="Secteur"      className="text-left" />}
                 {col('rsi')         && <SortTh colKey="rsi"           label="RSI"          className="text-right" />}
                 {col('mom3m')       && <SortTh colKey="mom3m"         label="Mom 3m"       className="text-right" />}
@@ -489,6 +493,15 @@ export default function ScreenerTable({
                         score={row.score_total}
                         sub={{ f: row.score_fundamentals, t: row.score_technicals, m: row.score_momentum }}
                       />
+                    </td>
+                    <td className="px-4 py-3.5 text-center">
+                      {histByTicker?.[row.ticker]?.length ? (
+                        <div className="inline-flex items-center justify-center" title={`Historique 30 jours — ${histByTicker[row.ticker].length} points`}>
+                          <Sparkline data={histByTicker[row.ticker]} width={84} height={24} showDot />
+                        </div>
+                      ) : (
+                        <span className="text-[#4A6355] text-xs">—</span>
+                      )}
                     </td>
                     {col('sector') && (
                       <td className="px-4 py-3.5 text-xs text-[#6D7A72]">{row.sector || '—'}</td>

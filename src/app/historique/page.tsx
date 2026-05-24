@@ -16,31 +16,56 @@ function issueNumberFor(d: Date): number {
   return Math.max(1, Math.floor(ms / (1000 * 60 * 60 * 24)) + 1)
 }
 
+function historyCutoffIso(): string {
+  return new Date(Date.now() - 35 * 86_400_000).toISOString()
+}
+
 export default async function HistoriquePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Récupère les 30 dernières "éditions" — distinct score_date avec top 3 tickers chacune
-  const { data: rows } = await supabase
-    .from('ticker_scores')
-    .select('ticker, company_name, score_total, score_date')
-    .order('score_date', { ascending: false })
-    .order('score_total', { ascending: false })
-    .limit(500)
+  // Bug fix : on lit `score_history` (append-only par run) au lieu de `ticker_scores`
+  // (UPSERT = un seul row par ticker écrasé chaque jour). Sans ça la page ne pouvait
+  // afficher qu'une seule édition (celle du jour).
+  // On remonte 35 jours pour garantir au moins 30 éditions visibles malgré les
+  // jours sans scoring (weekends, trous prod).
+  const cutoff = historyCutoffIso()
+  const [historyResult, namesResult] = await Promise.all([
+    supabase
+      .from('score_history')
+      .select('ticker, score, scored_at')
+      .gte('scored_at', cutoff)
+      .order('scored_at', { ascending: false })
+      .limit(5000),
+    supabase
+      .from('ticker_scores')
+      .select('ticker, company_name'),
+  ])
+  const nameByTicker = new Map<string, string | null>(
+    (namesResult.data ?? []).map(n => [n.ticker as string, n.company_name as string | null])
+  )
 
   const byDate = new Map<string, Edition>()
-  for (const r of rows ?? []) {
-    const key = (r.score_date as string | null) ?? ''
+  for (const r of historyResult.data ?? []) {
+    const key = (r.scored_at as string | null)?.slice(0, 10) ?? ''
     if (!key) continue
     const existing: Edition = byDate.get(key) ?? { date: key, count: 0, top: [] }
     existing.count += 1
-    if (existing.top.length < 3) {
-      existing.top.push({ ticker: r.ticker, company_name: r.company_name, score_total: r.score_total })
-    }
+    existing.top.push({
+      ticker: r.ticker as string,
+      company_name: nameByTicker.get(r.ticker as string) ?? null,
+      score_total: r.score as number,
+    })
     byDate.set(key, existing)
   }
-  const editions = Array.from(byDate.values()).slice(0, 30)
+  const editions = Array.from(byDate.values())
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 30)
+    .map(e => ({
+      ...e,
+      top: [...e.top].sort((x, y) => y.score_total - x.score_total).slice(0, 3),
+    }))
 
   return (
     <div className="min-h-screen bg-[#0A0F0C] text-[#F0EBDB]">
